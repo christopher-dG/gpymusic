@@ -1,16 +1,20 @@
 from gmusicapi import Mobileclient
+from random import shuffle
 import abc, configparser, os, subprocess
 
-class APIUser:
+class API:
+
+    api = Mobileclient()
+    
     def __init__(self):
-        self.read_config()
-        self.api = Mobileclient()
-        logged_in = self.api.login(self.user_info['email'], self.user_info['password'], self.user_info['deviceid'])
+        self.user_info = self.read_config()
+
+        logged_in = API.api.login(self.user_info['email'], self.user_info['password'], self.user_info['deviceid'])
         if not logged_in:
             print('Login failed (exiting).')
             quit()
         else:
-            self.id = self.api.get_registered_devices()[0]['id']
+            self.id = API.api.get_registered_devices()[0]['id']
             print('Logged in with device id ', self.id)
 
     def read_config(self, path=None):
@@ -26,13 +30,14 @@ class APIUser:
             quit()
         user_section = config.sections()[0]
         user_options = config.options(user_section)
-        self.user_info = {}
+        user_info = {}
         for option in user_options:
-            self.user_info[option] = config.get(user_section, option)
-
+            user_info[option] = config.get(user_section, option)
+        return user_info
+            
     def search(self, query):
-        api_results = self.api.search(query, 3)
-        results = {'artists': [], 'albums': [], 'songs': []} # wow look at me using dicts!
+        api_results = API.api.search(query, 3)
+        results = {'songs': [], 'artists': [], 'albums': []} # wow look at me using dicts!
         for artist in api_results['artist_hits']:
             results['artists'].append(Artist(artist['artist']['name'], artist['artist']['artistId']))
         for album in api_results['album_hits']:
@@ -79,10 +84,36 @@ class Artist(MusicObject):
         return self.artist
         
     def play(self, shuffle=False):
-        print('Playing')
+        api_results = API.api.get_artist_info(self.obj_id, True, 5, 0)
+        urls = []
+        print('Getting stream URLs for ', self.to_string(), ':')
+        for song in api_results['topTracks']:
+            urls.append(API.api.get_stream_url(song['storeId']))
+        print(urls)
+        if shuffle:
+            shuffle(urls)
+        playlist = open(os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist'), 'w')
+        for url in urls:
+            playlist.write("%s\n" % url)
+        playlist.close()
+        print('Playing ', self.to_string(), ':')
+        subprocess.call(['mplayer', '-playlist', os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist')])
+        
 
     def show(self):
-        print('stuff')
+        api_results = API.api.get_artist_info(self.obj_id, True, 15, 0)
+        artist = {'songs': [], 'albums': []}
+        songs = []
+        for song in api_results['topTracks']:
+            artist['songs'].append(Song(song['artist'], song['album'], song['title'], song['storeId']))
+        for album in api_results['albums']:
+            artist['albums'].append(Album(album['artist'], album['name'], album['albumId']))
+        count = 1
+        for key in artist:
+            print(key.capitalize(), ':')
+            for i in artist[key]:
+                print(count, ': ', i.to_string())
+                count += 1
 
 #------------------------------------------------------------
     
@@ -96,15 +127,34 @@ class Album(MusicObject):
         return ' - '.join((self.artist, self.album))
 
     def play(self, shuffle=False):
-        print('Playing')
+        api_results = API.api.get_album_info(self.obj_id)
+        urls = []
+        print('Getting stream URLs for ', self.to_string(), ':')
+        for song in api_results['tracks']:
+            urls.append(API.api.get_stream_url(song['storeId']))
+        if shuffle:
+            shuffle(urls)
+        playlist = open(os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist'), 'w')
+        for url in urls:
+            playlist.write("%s\n" % url)
+        playlist.close()
+        print('Playing ', self.to_string(), ':')
+        subprocess.call(['mplayer', '-playlist', os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist')])
 
     def show(self):
-        print('Stuff')
-    
+        api_results = API.api.get_album_info(self.obj_id)
+        songs = []
+        for song in api_results['tracks']:
+            songs.append(Song(song['artist'], song['album'], song['title'], song['storeId']))
+        count = 1
+        for song in songs:
+            print(count, ': ', song.to_string())
+            count += 1
         
 #------------------------------------------------------------
     
 class Song(MusicObject):
+
     def __init__(self, artist, album, song, song_id):
         self.artist = artist
         self.album = album
@@ -115,13 +165,17 @@ class Song(MusicObject):
         return ' - '.join((self.artist, self.song, self.album))
     
     def play(self):
-        print('Playing')
-
+        print('Getting stream URL:')
+        url = API.api.get_stream_url(self.obj_id)
+        print('Playing ', self.to_string(), ':')
+        subprocess.call(['mplayer', '-really-quiet', url])
+        
     def show(self):
-        print('Stuff')
+        print(self.to_string())
 
 
 if __name__ == '__main__':
     print('Welcome to (P)lay (M)usic for (CLI)!')
-    user = APIUser()
-    user.search("Rise Against")
+    API()
+    artist = Artist('Artist Name', 'Apoecs6off3y6k4h5nvqqos4b5e')
+    artist.play()
