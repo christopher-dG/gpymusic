@@ -1,0 +1,5 @@
+#this goes in '~/.config/pmcli'
+[User]
+email: email@address
+password: yourPassword
+deviceid: yourDeviceId

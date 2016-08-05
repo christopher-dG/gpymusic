@@ -1,78 +1,127 @@
 from gmusicapi import Mobileclient
-import os
-import subprocess
-import configparser
+import abc, configparser, os, subprocess
 
-class Account:
-
-    def __init__(self, username, password, deviceId):
+class APIUser:
+    def __init__(self):
+        self.read_config()
         self.api = Mobileclient()
-        logged_in = self.api.login(username, password, deviceId)
-        
-        if logged_in == False:
-            print("Login failed (exiting)")
+        logged_in = self.api.login(self.user_info['email'], self.user_info['password'], self.user_info['deviceid'])
+        if not logged_in:
+            print('Login failed (exiting).')
             quit()
         else:
             self.id = self.api.get_registered_devices()[0]['id']
+            print('Logged in with device id ', self.id)
+
+    def read_config(self, path=None):
+        if not path:
+            path = os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'config')
+        config = configparser.ConfigParser()
+        if not os.path.isfile(path):
+            print('Config file not found at ', path, '(exiting).')
+            quit()
+        config.read(path)
+        if not 'User' in config.sections():
+            print('Section \'[User]\' not found in ', path, '. See config.example (exiting).')
+            quit()
+        user_section = config.sections()[0]
+        user_options = config.options(user_section)
+        self.user_info = {}
+        for option in user_options:
+            self.user_info[option] = config.get(user_section, option)
+
+    def search(self, query):
+        api_results = self.api.search(query, 3)
+        results = {'artists': [], 'albums': [], 'songs': []} # wow look at me using dicts!
+        for artist in api_results['artist_hits']:
+            results['artists'].append(Artist(artist['artist']['name'], artist['artist']['artistId']))
+        for album in api_results['album_hits']:
+            results['albums'].append(Album(album['album']['artist'], album['album']['name'], album['album']['albumId']))
+        for song in api_results['song_hits']:
+            results['songs'].append(Song(song['track']['artist'], song['track']['album'], song['track']['title'], song['track']['storeId']))
+        self.show_results(results)
+
+    def show_results(self, results):
+        count = 1
+        for key in results:
+            if len(results[key]) > 0:
+                print(key.capitalize(), ':')
+                for i in results[key]:
+                    print(count, ': ', i.to_string())
+                    count += 1
             
-    def search(self, query, queryType):
-        acceptedQueries = ['album', 'artist', 'song', 'playlist']
-        if queryType in acceptedQueries:
-            searchResult =  self.api.search(query, 10)
-        else:
-            print("Unrecognized query type: choose from album, artist, song, playlist")
-            searchResult = None
-        return searchResult
+#------------------------------------------------------------            
 
-    def getUrl(self, storeId):
-        return self.api.get_stream_url(storeId)
+class MusicObject(abc.ABC):
+    def __init__(self, obj_id):
+        self.obj_id = obj_id
 
-def readConfig():
-    config = configparser.ConfigParser()
-    config.read(os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'config'))
-    userSection = config.sections()[0]
-    userOptions = config.options(userSection)
-    userInfo = {}
-    for option in userOptions:
-        userInfo[option] = config.get(userSection, option)
-    return userInfo
+    @abc.abstractmethod
+    def to_string():
+        return
 
+    @abc.abstractmethod
+    def play():
+        return
 
-def search(query, queryType):
-
-    # returns a list of tuples with format:
-    # (artist, album) for albums
-    # (artist) for artists
-    # (artist, song, album) for songs
+    @abc.abstractmethod
+    def show():
+        return
     
-    acceptedQueries = ['album', 'artist', 'song']
-    if queryType in acceptedQueries:
-        results = []
-        searchResults = user.search(query, queryType)[queryType+"_hits"]
-        if queryType == 'album':
-            for result in searchResults:
-                results.append((result['album']['artist'], result['album']['name'], result['album']['albumId']))
-        elif queryType == 'artist':
-            for result in searchResults:
-                results.append((result['artist']['name'], result['artist']['artistId']))
-        else:
-            print('Songs:')
-            for result in searchResults:
-                results.append((result['track']['artist'], result['track']['title'], result['track']['album'], result['track']['storeId']))
-    else:
-        print("Unrecognized query type: choose from album, artist, song, playlist")
-        results = None
+#------------------------------------------------------------            
+
+class Artist(MusicObject):
+    def __init__(self, artist, artist_id):
+        self.artist = artist
+        MusicObject.__init__(self, artist_id)
+
+    def to_string(self):
+        return self.artist
         
-    return results
+    def play(self, shuffle=False):
+        print('Playing')
 
-# ----------------------------------------------------------------------------------------------------
+    def show(self):
+        print('stuff')
 
-if __name__ == "__main__":
-    userInfo = readConfig()
-    user = Account(userInfo['email'], userInfo['password'], userInfo['deviceid'])
-    results = search('forever', 'song')
-    # count = 1
-    # for result in results:
-    #     print(count, ': ', ' - '.join(result))
-    #     print(user.getUrl(result[-1]))
-    subprocess.call(['mplayer', '-quiet', user.getUrl(results[0][-1])])
+#------------------------------------------------------------
+    
+class Album(MusicObject):
+    def __init__(self, artist, album, album_id):
+        self.artist = artist
+        self.album = album
+        MusicObject.__init__(self, album_id)
+
+    def to_string(self):
+        return ' - '.join((self.artist, self.album))
+
+    def play(self, shuffle=False):
+        print('Playing')
+
+    def show(self):
+        print('Stuff')
+    
+        
+#------------------------------------------------------------
+    
+class Song(MusicObject):
+    def __init__(self, artist, album, song, song_id):
+        self.artist = artist
+        self.album = album
+        self.song = song
+        MusicObject.__init__(self, song_id)
+
+    def to_string(self):
+        return ' - '.join((self.artist, self.song, self.album))
+    
+    def play(self):
+        print('Playing')
+
+    def show(self):
+        print('Stuff')
+
+
+if __name__ == '__main__':
+    print('Welcome to (P)lay (M)usic for (CLI)!')
+    user = APIUser()
+    user.search("Rise Against")
