@@ -97,7 +97,7 @@ class Artist(MusicObject):
             playlist.write("%s\n" % url)
         playlist.close()
         print('Playing ', self.to_string(), ':')
-        subprocess.call(['mplayer', '-playlist', os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist')])
+        subprocess.call(['mpv', '-playlist', os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist')])
         
 
     def show(self):
@@ -139,7 +139,7 @@ class Album(MusicObject):
             playlist.write("%s\n" % url)
         playlist.close()
         print('Playing ', self.to_string(), ':')
-        subprocess.call(['mplayer', '-playlist', os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist')])
+        subprocess.call(['mpv', '-playlist', os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist')])
 
     def show(self):
         api_results = API.api.get_album_info(self.obj_id)
@@ -168,7 +168,7 @@ class Song(MusicObject):
         print('Getting stream URL:')
         url = API.api.get_stream_url(self.obj_id)
         print('Playing ', self.to_string(), ':')
-        subprocess.call(['mplayer', '-really-quiet', url])
+        subprocess.call(['mpv', '-really-quiet', url])
         
     def show(self):
         print(self.to_string())
