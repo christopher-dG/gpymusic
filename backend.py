@@ -177,5 +177,3 @@ class Song(MusicObject):
 if __name__ == '__main__':
     print('Welcome to (P)lay (M)usic for (CLI)!')
     API()
-    artist = Artist('Artist Name', 'Apoecs6off3y6k4h5nvqqos4b5e')
-    artist.play()
