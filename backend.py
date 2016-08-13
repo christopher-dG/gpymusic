@@ -5,17 +5,17 @@ import abc, configparser, os, subprocess
 class API:
 
     api = Mobileclient()
+    id = ''
     
     def __init__(self):
-        self.user_info = self.read_config()
-
-        logged_in = API.api.login(self.user_info['email'], self.user_info['password'], self.user_info['deviceid'])
+        user_info = self.read_config()
+        logged_in = API.api.login(user_info['email'], user_info['password'], user_info['deviceid'])
         if not logged_in:
             print('Login failed (exiting).')
             quit()
         else:
-            self.id = API.api.get_registered_devices()[0]['id']
-            print('Logged in with device id ', self.id)
+            API.id = API.api.get_registered_devices()[0]['id']
+            print('Logged in with device id ', API.id)
 
     def read_config(self, path=None):
         if not path:
@@ -45,6 +45,7 @@ class API:
         for song in api_results['song_hits']:
             results['songs'].append(Song(song['track']['artist'], song['track']['album'], song['track']['title'], song['track']['storeId']))
         self.show_results(results)
+        return results
 
     def show_results(self, results):
         count = 1
@@ -54,7 +55,7 @@ class API:
                 for i in results[key]:
                     print(count, ': ', i.to_string())
                     count += 1
-            
+
 #------------------------------------------------------------            
 
 class MusicObject(abc.ABC):
@@ -89,7 +90,6 @@ class Artist(MusicObject):
         print('Getting stream URLs for ', self.to_string(), ':')
         for song in api_results['topTracks']:
             urls.append(API.api.get_stream_url(song['storeId']))
-        print(urls)
         if shuffle:
             shuffle(urls)
         playlist = open(os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist'), 'w')
@@ -172,8 +172,3 @@ class Song(MusicObject):
         
     def show(self):
         print(self.to_string())
-
-
-if __name__ == '__main__':
-    print('Welcome to (P)lay (M)usic for (CLI)!')
-    API()
