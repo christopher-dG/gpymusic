@@ -7,8 +7,8 @@ class API:
     api = Mobileclient()
     id = ''
     
-    def __init__(self):
-        user_info = self.read_config()
+    def __init__(self, path=None):
+        user_info = self.read_config(path)
         logged_in = API.api.login(user_info['email'], user_info['password'], user_info['deviceid'])
         if not logged_in:
             print('Login failed (exiting).')
@@ -59,7 +59,8 @@ class API:
 #------------------------------------------------------------            
 
 class MusicObject(abc.ABC):
-    def __init__(self, obj_id):
+    def __init__(self, num_objects, obj_id):
+        self.num_objects = num_objects
         self.obj_id = obj_id
 
     @abc.abstractmethod
@@ -77,9 +78,9 @@ class MusicObject(abc.ABC):
 #------------------------------------------------------------            
 
 class Artist(MusicObject):
-    def __init__(self, artist, artist_id):
+    def __init__(self, num_objects, artist, artist_id):
         self.artist = artist
-        MusicObject.__init__(self, artist_id)
+        MusicObject.__init__(self, num_objects,  artist_id)
 
     def to_string(self):
         return self.artist
@@ -114,14 +115,14 @@ class Artist(MusicObject):
             for i in artist[key]:
                 print(count, ': ', i.to_string())
                 count += 1
-
+        return artist
 #------------------------------------------------------------
     
 class Album(MusicObject):
-    def __init__(self, artist, album, album_id):
+    def __init__(self, num_objects, artist, album, album_id):
         self.artist = artist
         self.album = album
-        MusicObject.__init__(self, album_id)
+        MusicObject.__init__(self, num_objects, album_id)
 
     def to_string(self):
         return ' - '.join((self.artist, self.album))
@@ -150,7 +151,7 @@ class Album(MusicObject):
         for song in songs:
             print(count, ': ', song.to_string())
             count += 1
-        
+        return songs
 #------------------------------------------------------------
     
 class Song(MusicObject):
@@ -159,7 +160,7 @@ class Song(MusicObject):
         self.artist = artist
         self.album = album
         self.song = song
-        MusicObject.__init__(self, song_id)
+        MusicObject.__init__(self, 1, song_id)
 
     def to_string(self):
         return ' - '.join((self.artist, self.song, self.album))
@@ -172,3 +173,4 @@ class Song(MusicObject):
         
     def show(self):
         print(self.to_string())
+        return self.to_string()
