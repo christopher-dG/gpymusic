@@ -8,6 +8,7 @@ class API:
     id = ''
     
     def __init__(self, path=None):
+        # logs into the API
         user_info = self.read_config(path)
         logged_in = API.api.login(user_info['email'], user_info['password'], user_info['deviceid'])
         if not logged_in:
@@ -18,6 +19,8 @@ class API:
             print('Logged in with device id ', API.id)
 
     def read_config(self, path=None):
+        # reads the config file to get login info
+        # returns a dict with keys 'email', 'password', and 'deviceid'
         if not path:
             path = os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'config')
         config = configparser.ConfigParser()
@@ -36,6 +39,8 @@ class API:
         return user_info
             
     def search(self, query):
+        # searches google play for some user input
+        # returns a dict with keys 'songs', 'artists', and 'albums' (each value is an array)
         api_results = API.api.search(query, 3)
         results = {'songs': [], 'artists': [], 'albums': []} # wow look at me using dicts!
         for artist in api_results['artist_hits']:
@@ -48,6 +53,7 @@ class API:
         return results
 
     def show_results(self, results):
+        # prints off some given MusicObject objects
         count = 1
         for key in results:
             if len(results[key]) > 0:
@@ -59,25 +65,30 @@ class API:
 #------------------------------------------------------------            
 
 class MusicObject(abc.ABC):
+    
     def __init__(self, num_objects, obj_id):
         self.num_objects = num_objects
         self.obj_id = obj_id
 
     @abc.abstractmethod
     def to_string():
+        # returns formatted info on the MusicObject
         return
 
     @abc.abstractmethod
     def play():
+        # streams the MusicObject
         return
 
     @abc.abstractmethod
     def show():
+        # prints a the MusicObject's formatted info
         return
     
 #------------------------------------------------------------            
 
 class Artist(MusicObject):
+    
     def __init__(self, num_objects, artist, artist_id):
         self.artist = artist
         MusicObject.__init__(self, num_objects,  artist_id)
@@ -100,8 +111,8 @@ class Artist(MusicObject):
         print('Playing ', self.to_string(), ':')
         subprocess.call(['mpv', '-playlist', os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist')])
         
-
     def show(self):
+        # returns a dict with keys 'songs' and 'albums' where each value is an array of Song or Album objects
         api_results = API.api.get_artist_info(self.obj_id, True, 15, 0)
         artist = {'songs': [], 'albums': []}
         songs = []
@@ -116,9 +127,11 @@ class Artist(MusicObject):
                 print(count, ': ', i.to_string())
                 count += 1
         return artist
+
 #------------------------------------------------------------
     
 class Album(MusicObject):
+
     def __init__(self, num_objects, artist, album, album_id):
         self.artist = artist
         self.album = album
@@ -143,6 +156,7 @@ class Album(MusicObject):
         subprocess.call(['mpv', '-playlist', os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist')])
 
     def show(self):
+        # returns an array of Song objects
         api_results = API.api.get_album_info(self.obj_id)
         songs = []
         for song in api_results['tracks']:
@@ -152,6 +166,7 @@ class Album(MusicObject):
             print(count, ': ', song.to_string())
             count += 1
         return songs
+
 #------------------------------------------------------------
     
 class Song(MusicObject):
@@ -172,5 +187,6 @@ class Song(MusicObject):
         subprocess.call(['mpv', '-really-quiet', url])
         
     def show(self):
+        # returns the formatted string from to_string()
         print(self.to_string())
         return self.to_string()
