@@ -29,6 +29,13 @@ class ExpandableState(State):
 
 # ------------------------------------------------------------
 
+class NoChangeState(State):
+    def __init__(self, last_state):
+        self.last_state = last_state
+
+
+# ------------------------------------------------------------
+
 class SearchResultsState(ExpandableState):
     def __init__(self, search_results):
         super().__init__(search_results)
@@ -87,7 +94,10 @@ class ShowObjectState(ExpandableState):
 
 # ------------------------------------------------------------
 
-class HelpState(State):
+class HelpState(NoChangeState):
+    def __init__(self, last_state):
+        super().__init__(last_state)
+
     def show(self):
         print('Commands:')
         print('h/help: Show this help message')
@@ -99,9 +109,9 @@ class HelpState(State):
 
 # ------------------------------------------------------------
 
-class InvalidInputState(State):
+class InvalidInputState(NoChangeState):
     def __init__(self, last_state):
-        self.last_state = last_state
+        super().__init__(last_state)
 
     def show(self):
         print('Invalid input: enter h for help')
@@ -113,7 +123,7 @@ def transition(current_state, user_input):
     # returns the new state
     user_input = [i.strip() for i in user_input.split(' ', 1)]
     # restore old state if we had invalid input
-    if type(current_state).__name__ == 'InvalidInputState':
+    if isinstance(current_state, NoChangeState):
         current_state = current_state.last_state
 
     # search
@@ -148,7 +158,7 @@ def transition(current_state, user_input):
             next_state = InvalidInputState(current_state)
     # help
     elif user_input[0] == 'h' or user_input[0] == 'help':
-        next_state = HelpState()
+        next_state = HelpState(current_state)
     # quit
     elif user_input[0] == 'q' or user_input[0] == 'quit':
         if input('Really quit? Enter q again to exit: ') == 'q':

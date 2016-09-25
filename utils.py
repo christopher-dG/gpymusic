@@ -91,13 +91,11 @@ class Artist(MusicObject):
         return self.name
 
     def play(self):
-        print('Getting stream URLs for %s:' % self.to_string())
-        urls = [API.api.get_stream_url(song['id']) for song in self.contents['songs']]
-        with open(os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist'), 'w') as playlist:
-            for url in urls:
-                playlist.write("%s\n" % url)
-        print('Playing %s:' % self.to_string())
-        subprocess.call(['mpv', '-playlist', os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist')])
+        for song in self.contents['songs']:
+            url = API.api.get_stream_url(song['id'])
+            print('Playing %s:' % (' - '.join((self.name, song['name']))))
+            if subprocess.call(['mpv', '--really-quiet', '--input-conf=~/.config/pmcli/mpv_input.conf', url]) is 11:
+                break
 
     def show(self):
         i = 1
@@ -129,13 +127,11 @@ class Album(MusicObject):
         return ' - '.join((self.contents['artist']['name'], self.name))
 
     def play(self):
-        print('Getting stream URLS for %s:' % self.to_string())
-        urls = [API.api.get_stream_url(song['id']) for song in self.contents['songs']]
-        with open(os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist'), 'w') as playlist:
-            for url in urls:
-                playlist.write("%s\n" % url)
-        print('Playing %s:' % self.to_string())
-        subprocess.call(['mpv', '-playlist', os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist')])
+        for song in self.contents['songs']:
+            url = API.api.get_stream_url(song['id'])
+            print('Playing %s:' % (' - '.join((self.contents['artist']['name'], song['name'], self.name))))
+            if subprocess.call(['mpv', '--really-quiet', '--input-conf=~/.config/pmcli/mpv_input.conf', url]) is 11:
+                break
 
     def show(self):
         i = 1
@@ -165,7 +161,7 @@ class Song(MusicObject):
         print('Getting stream URL:')
         url = API.api.get_stream_url(self.id)
         print('Playing %s:' % self.to_string())
-        subprocess.call(['mpv', '-really-quiet', url])
+        subprocess.call(['mpv', '--really-quiet',  url])
 
     def show(self):
         print('1: %s' % (self.to_string()))
