@@ -1,173 +1,169 @@
+#!/usr/bin/python
+
 import abc
-import os
-import subprocess
-
-from gmusicapi import Mobileclient
+import utils
 
 
-class API:
-    api = Mobileclient()
-
-    def __init__(self):
-        # logs into the API
-        user_info = self.read_config()
-        logged_in = API.api.login(user_info['email'], user_info['password'], user_info['deviceid'])
-        if not logged_in:
-            print('Login failed (exiting).')
-            quit()
-        print('Logged in with device id %s' % user_info['deviceid'])
-
-    @staticmethod
-    def read_config():
-        # reads the config file to get login info
-        # returns a dict with keys 'email', 'password', and 'deviceid'
-        path = os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'config')
-        if not os.path.isfile(path):
-            print('Config file not found at %s, (exiting).' % path)
-            quit()
-        user_info = {}
-        with open(path, 'r') as config:
-            for line in config:
-                key_val = [i.strip() for i in line.split(':', 1)]
-                user_info[key_val[0]] = key_val[1]
-        return user_info
-
-    @staticmethod
-    def search(query):
-        print('Searching for %s' % query)
-        # searches google play for some user input
-        # returns a dict with keys 'songs', 'artists', and 'albums' (each value is a list)
-        query_results = API.api.search(query, 10)
-        return {'artists': [Artist(API.api.get_artist_info(artist['artist']['artistId'])) for artist in
-                            query_results['artist_hits']],
-                'albums': [Album(API.api.get_album_info(album['album']['albumId'])) for album in
-                           query_results['album_hits']],
-                'songs': [Song(API.api.get_track_info(song['track']['storeId'])) for song in
-                          query_results['song_hits']]}
-
-
-# ------------------------------------------------------------
-
-class MusicObject(abc.ABC):
-    def __init__(self, name, id):
-        self.name = name
-        self.id = id
-
-    @abc.abstractmethod
-    def to_string(self):
-        # returns formatted info on the MusicObject
-        return
-
-    @abc.abstractmethod
-    def play(self):
-        # streams the MusicObject
-        return
-
+class State(abc.ABC):
     @abc.abstractmethod
     def show(self):
-        # prints a the MusicObject's formatted info
+        # displays whatever a state holds
         return
 
 
 # ------------------------------------------------------------
 
-class Artist(MusicObject):
-    def __init__(self, artist):
-        self.contents = {}
-        if 'albums' in artist:
-            self.contents['albums'] = [{'name': album['name'], 'id': album['albumId']} for album in artist['albums']]
+class ExpandableState(State):
+    def __init__(self, options):
+        self.options = options
+
+    @abc.abstractclassmethod
+    def length(self):
+        # get the length of the list of options
+        return
+
+    @abc.abstractclassmethod
+    def get_option(self, num):
+        return
+
+
+# ------------------------------------------------------------
+
+class SearchResultsState(ExpandableState):
+    def __init__(self, search_results):
+        super().__init__(search_results)
+
+    def length(self):
+        return sum([len(self.options[key]) for key in self.options])
+
+    def show(self):
+        i = 1
+        for key in sorted(self.options):  # albums, artists, songs
+            print('%s:' % key.capitalize())
+            for result in self.options[key]:
+                print('%d: %s' % (i, result.to_string()))
+                i += 1
+
+    def get_option(self, num):
+        i = 1
+        for key in sorted(self.options):
+            for item in self.options[key]:
+                if i is num:
+                    return item
+                else:
+                    i += 1
+
+
+# ------------------------------------------------------------
+
+class ShowObjectState(ExpandableState):
+    def __init__(self, music_obj):
+        super().__init__(music_obj)
+
+    def length(self):  # get the length of all whatever list is being shown
+        return self.options.length()
+
+    def show(self):
+        self.options.show()
+
+    def get_option(self, num):
+        i = 1
+        if i is num:
+            return self.options
         else:
-            self.contents['albums']= {}
-        if 'topTracks' in artist:
-            self.contents['songs'] = [{'name': song['title'], 'id': song['storeId']} for song in artist['topTracks']]
+            i += 1
+            for key in self.options.contents:
+                for item in self.options.contents[key]:
+                    if i is num:
+                        if item['id'].startswith('A'):
+                            return utils.Artist(utils.API.api.get_artist_info(item['id']))
+                        elif item['id'].startswith('B'):
+                            return utils.Album(utils.API.api.get_album_info(item['id']))
+                        elif item['id'].startswith('T'):
+                            return utils.Song(utils.API.api.get_track_info(item['id']))
+                    else:
+                        i += 1
+
+
+# ------------------------------------------------------------
+
+class HelpState(State):
+    def show(self):
+        print('Commands:')
+        print('h/help: Show this help message')
+        print('s/search search-term: Search for search-term')
+        print('q/quit: Exit pmcli')
+        print('p/play 123: Play item number 123')
+        print('i/info 123: Show info on item number 123')
+
+
+# ------------------------------------------------------------
+
+class InvalidInputState(State):
+    def __init__(self, last_state):
+        self.last_state = last_state
+
+    def show(self):
+        print('Invalid input: enter h for help')
+
+
+# ------------------------------------------------------------
+
+def transition(current_state, user_input):
+    # returns the new state
+    user_input = [i.strip() for i in user_input.split(' ', 1)]
+    # restore old state if we had invalid input
+    if type(current_state).__name__ == 'InvalidInputState':
+        current_state = current_state.last_state
+
+    # search
+    if user_input[0] == 's' or user_input[0] == 'search':
+        next_state = SearchResultsState(api.search(user_input[1]))
+    # play
+    elif user_input[0] == 'p' or user_input[0] == 'play':
+        if isinstance(current_state, ExpandableState):
+            try:
+                num = int(user_input[1])
+                if num > current_state.length():
+                    next_state = InvalidInputState(current_state)
+                else:
+                    current_state.get_option(num).play()
+                    next_state = current_state
+            except ValueError:
+                next_state = InvalidInputState(current_state)
         else:
-            self.contents['songs'] = {}
-        super().__init__(artist['name'], artist['artistId'])
+            next_state = InvalidInputState(current_state)
+    # info
+    elif user_input[0] == 'i' or user_input[0] == 'info':
+        if isinstance(current_state, ExpandableState):  # sorry, python purists
+            try:
+                num = int(user_input[1])
+                if num > current_state.length():
+                    next_state = InvalidInputState(current_state)
+                else:
+                    next_state = ShowObjectState(current_state.get_option(num))
+            except ValueError:
+                next_state = InvalidInputState(current_state)
+        else:
+            next_state = InvalidInputState(current_state)
+    # help
+    elif user_input[0] == 'h' or user_input[0] == 'help':
+        next_state = HelpState()
+    # quit
+    elif user_input[0] == 'q' or user_input[0] == 'quit':
+        if input('Really quit? Enter q again to exit: ') == 'q':
+            quit()
+        next_state = current_state
+    else:
+        next_state = InvalidInputState(current_state)
 
-    def length(self):
-        return sum([len(self.contents[key]) for key in self.contents])
-
-    def to_string(self):
-        return self.name
-
-    def play(self):
-        urls = []
-        print('Getting stream URLs for %s:' % self.to_string())
-        urls = [API.api.get_stream_url(song['id']) for song in self.contents['songs']]
-        with open(os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist'), 'w') as playlist:
-            for url in urls:
-                playlist.write("%s\n" % url)
-        print('Playing %s:' % self.to_string())
-        subprocess.call(['mpv', '-playlist', os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist')])
-
-    def show(self):
-        count = 1
-        print('%d: %s' % (count, self.to_string()))
-        count += 1
-        print('Albums:')
-        for album in self.contents['albums']:
-            print('%d: %s' % (count, album['name']))
-            count += 1
-        print('Songs:')
-        for song in self.contents['songs']:
-            print('%d: %s' % (count, song['name']))
-            count += 1
+    return next_state
 
 
-# ------------------------------------------------------------
-
-class Album(MusicObject):
-    def __init__(self, album):
-        self.contents = {}
-        self.contents = {'artist': {'name': album['artist'], 'id': album['artistId']},
-                         'songs': [{'name': song['title'], 'id': song['storeId']} for song in album['tracks']]}
-        super().__init__(album['name'], album['albumId'])
-
-    def length(self):
-        return len(self.contents['songs'])
-
-    def to_string(self):
-        return ' - '.join((self.contents['artist']['name'], self.name))
-
-    def play(self):
-        print('Getting stream URLS for %s:' % self.to_string())
-        urls = [API.api.get_stream_url(song['id']) for song in self.contents['songs']]
-        with open(os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist'), 'w') as playlist:
-            for url in urls:
-                playlist.write("%s\n" % url)
-        print('Playing %s:' % self.to_string())
-        subprocess.call(['mpv', '-playlist', os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist')])
-
-    def show(self):
-        count = 1
-        print(self.to_string())
-        count += 1
-        print('Songs:')
-        for song in self.contents['songs']:
-            print('%d: %s' % (count, song['name']))
-            count += 1
-
-
-# ------------------------------------------------------------
-
-class Song(MusicObject):
-    def __init__(self, song):
-        self.contents = {'artist': {'name': song['artist'], 'id': song['artistId'][0]},
-                         'album': {'name': song['album'], 'id': song['albumId']}}
-        super().__init__(song['title'], song['storeId'])
-
-    def length(self):
-        return 1
-
-    def to_string(self):
-        return ' - '.join((self.contents['artist']['name'], self.name, self.contents['album']['name']))
-
-    def play(self):
-        print('Getting stream URL:')
-        url = API.api.get_stream_url(self.id)
-        print('Playing %s:' % self.to_string())
-        subprocess.call(['mpv', '-really-quiet', url])
-
-    def show(self):
-        count = 1
-        print('%d: %s' % (count, self.to_string()))
+if __name__ == '__main__':
+    api = utils.API()
+    print('Welcome to pmcli! Enter h for help.')
+    state = None
+    while True:
+        state = transition(state, input('> '))
+        state.show()

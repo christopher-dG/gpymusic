@@ -1,5 +1,5 @@
 from gmusicapi import Mobileclient
-import pmcli, sys
+import utils, sys
 
 if __name__ == '__main__':
     api = Mobileclient()
@@ -7,7 +7,7 @@ if __name__ == '__main__':
         path = sys.argv[1]
     else:
         path = None
-        user_info = pmcli.API.read_config()
+        user_info = utils.API.read_config()
     logged_in = api.login(user_info['email'], user_info['password'], Mobileclient.FROM_MAC_ADDRESS)
     if not logged_in:
         print('login failed')
