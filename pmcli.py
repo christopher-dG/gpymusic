@@ -1,192 +1,192 @@
+import abc
+import os
+import subprocess
+
 from gmusicapi import Mobileclient
-from random import shuffle
-import abc, configparser, os, subprocess
+
 
 class API:
-
     api = Mobileclient()
-    id = ''
-    
-    def __init__(self, path=None):
+
+    def __init__(self):
         # logs into the API
-        user_info = self.read_config(path)
+        user_info = self.read_config()
         logged_in = API.api.login(user_info['email'], user_info['password'], user_info['deviceid'])
         if not logged_in:
             print('Login failed (exiting).')
             quit()
-        else:
-            API.id = API.api.get_registered_devices()[0]['id']
-            print('Logged in with device id ', API.id)
+        print('Logged in with device id %s' % user_info['deviceid'])
 
-    def read_config(self, path=None):
+    @staticmethod
+    def read_config():
         # reads the config file to get login info
         # returns a dict with keys 'email', 'password', and 'deviceid'
-        if not path:
-            path = os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'config')
-        config = configparser.ConfigParser()
+        path = os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'config')
         if not os.path.isfile(path):
-            print('Config file not found at ', path, '(exiting).')
+            print('Config file not found at %s, (exiting).' % path)
             quit()
-        config.read(path)
-        if not 'User' in config.sections():
-            print('Section \'[User]\' not found in ', path, '. See config.example (exiting).')
-            quit()
-        user_section = config.sections()[0]
-        user_options = config.options(user_section)
         user_info = {}
-        for option in user_options:
-            user_info[option] = config.get(user_section, option)
+        with open(path, 'r') as config:
+            for line in config:
+                key_val = [i.strip() for i in line.split(':', 1)]
+                user_info[key_val[0]] = key_val[1]
         return user_info
-            
-    def search(self, query):
+
+    @staticmethod
+    def search(query):
+        print('Searching for %s' % query)
         # searches google play for some user input
-        # returns a dict with keys 'songs', 'artists', and 'albums' (each value is an array)
-        api_results = API.api.search(query, 3)
-        results = {'songs': [], 'artists': [], 'albums': []} # wow look at me using dicts!
-        for artist in api_results['artist_hits']:
-            results['artists'].append(Artist(artist['artist']['name'], artist['artist']['artistId']))
-        for album in api_results['album_hits']:
-            results['albums'].append(Album(album['album']['artist'], album['album']['name'], album['album']['albumId']))
-        for song in api_results['song_hits']:
-            results['songs'].append(Song(song['track']['artist'], song['track']['album'], song['track']['title'], song['track']['storeId']))
-        self.show_results(results)
-        return results
+        # returns a dict with keys 'songs', 'artists', and 'albums' (each value is a list)
+        query_results = API.api.search(query, 10)
+        return {'artists': [Artist(API.api.get_artist_info(artist['artist']['artistId'])) for artist in
+                            query_results['artist_hits']],
+                'albums': [Album(API.api.get_album_info(album['album']['albumId'])) for album in
+                           query_results['album_hits']],
+                'songs': [Song(API.api.get_track_info(song['track']['storeId'])) for song in
+                          query_results['song_hits']]}
 
-    def show_results(self, results):
-        # prints off some given MusicObject objects
-        count = 1
-        for key in results:
-            if len(results[key]) > 0:
-                print(key.capitalize(), ':')
-                for i in results[key]:
-                    print(count, ': ', i.to_string())
-                    count += 1
 
-#------------------------------------------------------------            
+# ------------------------------------------------------------
 
 class MusicObject(abc.ABC):
-    
-    def __init__(self, num_objects, obj_id):
-        self.num_objects = num_objects
+    def __init__(self, obj_id):
         self.obj_id = obj_id
 
     @abc.abstractmethod
-    def to_string():
+    def length(self):
+        # returns the number of a MusicObjects child objects, for example number of songs in an Album
+        return
+
+    @abc.abstractmethod
+    def append_ids(self):
+        # combines all child object ids into one list, for example all the songs in an album
+        return
+
+    @abc.abstractmethod
+    def to_string(self):
         # returns formatted info on the MusicObject
         return
 
     @abc.abstractmethod
-    def play():
+    def play(self):
         # streams the MusicObject
         return
 
     @abc.abstractmethod
-    def show():
+    def show(self):
         # prints a the MusicObject's formatted info
         return
-    
-#------------------------------------------------------------            
+
+
+# ------------------------------------------------------------
 
 class Artist(MusicObject):
-    
-    def __init__(self, num_objects, artist, artist_id):
-        self.artist = artist
-        MusicObject.__init__(self, num_objects,  artist_id)
+    def __init__(self, artist):
+        self.contents = {'name': artist['name'],
+                         'albums_ids': [album['albumId'] for album in artist['albums']],
+                         'albums': [album['name'] for album in artist['albums']],
+                         'song_ids': [song['storeId'] for song in artist['topTracks']],
+                         'songs': [song['title'] for song in artist['topTracks']]}
+        super().__init__(artist['artistId'])
+
+    def length(self):
+        return len(self.contents['albums']) + len(self.contents['songs'])
+
+    def append_ids(self):
+        return self.contents['album_ids'] + self.contents['song_ids']
 
     def to_string(self):
-        return self.artist
-        
-    def play(self, shuffle=False):
-        api_results = API.api.get_artist_info(self.obj_id, True, 5, 0)
+        return self.contents['name']
+
+    def play(self):
         urls = []
-        print('Getting stream URLs for ', self.to_string(), ':')
-        for song in api_results['topTracks']:
-            urls.append(API.api.get_stream_url(song['storeId']))
-        if shuffle:
-            shuffle(urls)
-        playlist = open(os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist'), 'w')
-        for url in urls:
-            playlist.write("%s\n" % url)
-        playlist.close()
-        print('Playing ', self.to_string(), ':')
-        subprocess.call(['mpv', '-playlist', os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist')])
-        
-    def show(self):
-        # returns a dict with keys 'songs' and 'albums' where each value is an array of Song or Album objects
-        api_results = API.api.get_artist_info(self.obj_id, True, 15, 0)
-        artist = {'songs': [], 'albums': []}
-        songs = []
-        for song in api_results['topTracks']:
-            artist['songs'].append(Song(song['artist'], song['album'], song['title'], song['storeId']))
-        for album in api_results['albums']:
-            artist['albums'].append(Album(album['artist'], album['name'], album['albumId']))
-        count = 1
-        for key in artist:
-            print(key.capitalize(), ':')
-            for i in artist[key]:
-                print(count, ': ', i.to_string())
-                count += 1
-        return artist
-
-#------------------------------------------------------------
-    
-class Album(MusicObject):
-
-    def __init__(self, num_objects, artist, album, album_id):
-        self.artist = artist
-        self.album = album
-        MusicObject.__init__(self, num_objects, album_id)
-
-    def to_string(self):
-        return ' - '.join((self.artist, self.album))
-
-    def play(self, shuffle=False):
-        api_results = API.api.get_album_info(self.obj_id)
-        urls = []
-        print('Getting stream URLs for ', self.to_string(), ':')
-        for song in api_results['tracks']:
-            urls.append(API.api.get_stream_url(song['storeId']))
-        if shuffle:
-            shuffle(urls)
-        playlist = open(os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist'), 'w')
-        for url in urls:
-            playlist.write("%s\n" % url)
-        playlist.close()
-        print('Playing ', self.to_string(), ':')
+        print('Getting stream URLs for %s:' % self.to_string())
+        urls = [API.api.get_stream_url(song_id) for song_id in self.contents['song_ids']]
+        with open(os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist'), 'w') as playlist:
+            for url in urls:
+                playlist.write("%s\n" % url)
+        print('Playing %s:' % self.to_string())
         subprocess.call(['mpv', '-playlist', os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist')])
 
     def show(self):
-        # returns an array of Song objects
-        api_results = API.api.get_album_info(self.obj_id)
-        songs = []
-        for song in api_results['tracks']:
-            songs.append(Song(song['artist'], song['album'], song['title'], song['storeId']))
         count = 1
-        for song in songs:
-            print(count, ': ', song.to_string())
+        print(self.to_string())
+        print('Songs:')
+        for song in self.contents['songs']:
+            print('%d: %s' % (count, song.capitalize()))
             count += 1
-        return songs
+        print('Albums:')
+        for album in self.contents['albums']:
+            print('%d: %s' % (count, album.capitalize()))
+            count += 1
 
-#------------------------------------------------------------
-    
-class Song(MusicObject):
 
-    def __init__(self, artist, album, song, song_id):
-        self.artist = artist
-        self.album = album
-        self.song = song
-        MusicObject.__init__(self, 1, song_id)
+# ------------------------------------------------------------
+
+class Album(MusicObject):
+    def __init__(self, album):
+        self.contents = {'name': album['name'],
+                         'artist': album['artist'],
+                         'artist_id': album['artistId'],
+                         'songs': [song['title'] for song in album['tracks']],
+                         'song_ids': [song['storeId'] for song in album['tracks']]}
+        super().__init__(album['albumId'])
+
+    def length(self):
+        return len(self.contents['songs'])
+
+    def append_ids(self):
+        return [self.obj_id] + [self.contents['artist_id']] + self.contents['song_ids']
 
     def to_string(self):
-        return ' - '.join((self.artist, self.song, self.album))
-    
+        return ' - '.join((self.contents['artist'], self.contents['name']))
+
+    def play(self):
+        print('Getting stream URLS for %s:' % self.to_string())
+        urls = [API.api.get_stream_url(song_id) for song_id in self.contents['song_ids']]
+        playlist = open(os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist'), 'w')
+        for url in urls:
+            playlist.write("%s\n" % url)
+        playlist.close()
+        print('Playing %s:' % self.to_string())
+        subprocess.call(['mpv', '-playlist', os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'playlist')])
+
+    def show(self):
+        count = 1
+        print('%d: %s' % (count, self.to_string()))
+        count += 1
+        print('Songs:')
+        for song in self.contents['songs']:
+            print('%d: %s' % (count, song.capitalize()))
+            count += 1
+
+
+# ------------------------------------------------------------
+
+class Song(MusicObject):
+    def __init__(self, song):
+        self.contents = {'name': song['title'],
+                         'artist_id': song['artistId'][0],
+                         'artist': song['artist'],
+                         'album_id': song['album'],
+                         'album': song['album']}
+        super().__init__(song['storeId'])
+
+    def length(self):
+        return 1
+
+    def append_ids(self):
+        return self.obj_id
+
+    def to_string(self):
+        return ' - '.join((self.contents['artist'], self.contents['name'], self.contents['album']))
+
     def play(self):
         print('Getting stream URL:')
         url = API.api.get_stream_url(self.obj_id)
-        print('Playing ', self.to_string(), ':')
+        print('Playing %s:' % self.to_string())
         subprocess.call(['mpv', '-really-quiet', url])
-        
+
     def show(self):
-        # returns the formatted string from to_string()
-        print(self.to_string())
-        return self.to_string()
+        count = 1
+        print('%d: %s' % self.to_string())
