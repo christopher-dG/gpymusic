@@ -14,6 +14,9 @@ Don't forget to manually edit your config file in `~/.config/pmcli`.
 ### Getting your device ID
 To find a valid device ID, configure email and password in `config`, and then run `python get_dev_id.py` to print out a list of IDs for you to try.
 
+### Running
+Simply run `pmcli` to launch.
+
 ### Controls
 - `h/help`: print help
 - `s/search` query: search for query

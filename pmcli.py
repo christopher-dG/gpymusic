@@ -7,31 +7,37 @@ import utils
 class State(abc.ABC):
     @abc.abstractmethod
     def show(self):
-        # displays whatever a state holds
-        return
+        # displays relevant info from the current state
+        pass
 
 
 # ------------------------------------------------------------
 
+# ExpandableStates
 class ExpandableState(State):
-    def __init__(self, options):
-        self.options = options
-
-    @abc.abstractclassmethod
-    def length(self):
-        # get the length of the list of options
-        return
+    def __init__(self, content):
+        self.options = content
 
     @abc.abstractclassmethod
     def get_option(self, num):
-        return
+        pass
 
+    @abc.abstractclassmethod
+    def length(self): # get the length of the list of options
+        pass
+
+    def show(self):
+        pass
 
 # ------------------------------------------------------------
 
 class NoChangeState(State):
+
     def __init__(self, last_state):
         self.last_state = last_state
+
+    def show(self):
+        pass
 
 
 # ------------------------------------------------------------

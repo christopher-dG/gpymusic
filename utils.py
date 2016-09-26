@@ -5,7 +5,7 @@ import subprocess
 from gmusicapi import Mobileclient
 
 
-class API:
+class API: # we use this to interact with the MobileClient
     api = Mobileclient()
 
     def __init__(self):
@@ -21,12 +21,12 @@ class API:
     def read_config():
         # reads the config file to get login info
         # returns a dict with keys 'email', 'password', and 'deviceid'
-        path = os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'config')
-        if not os.path.isfile(path):
-            print('Config file not found at %s, (exiting).' % path)
+        config_path = os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'config')
+        if not os.path.isfile(config_path):
+            print('Config file not found at %s, (exiting).' % config_path)
             quit()
         user_info = {}
-        with open(path, 'r') as config:
+        with open(config_path, 'r') as config:
             for line in config:
                 key_val = [i.strip() for i in line.split(':', 1)]
                 user_info[key_val[0]] = key_val[1]
@@ -34,7 +34,7 @@ class API:
 
     @staticmethod
     def search(query):
-        print('Searching for %s' % query)
+        print('Searching for %s:' % query)
         # searches google play for some user input
         # returns a dict with keys 'songs', 'artists', and 'albums' (each value is a list)
         query_results = API.api.search(query, 10)
@@ -161,7 +161,7 @@ class Song(MusicObject):
         print('Getting stream URL:')
         url = API.api.get_stream_url(self.id)
         print('Playing %s:' % self.to_string())
-        subprocess.call(['mpv', '--really-quiet',  url])
+        subprocess.call(['mpv', '--really-quiet', url])
 
     def show(self):
         print('1: %s' % (self.to_string()))
