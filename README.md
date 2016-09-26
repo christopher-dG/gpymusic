@@ -41,7 +41,7 @@ No seek backwards function yet, sorry ._.
 - more specific search (artists only, etc.)
 - genres
 - save music locally
-- cache api results shorter loads
+- cache api results for shorter loads
 - format for pip, upload to PyPI
 
 ### License
