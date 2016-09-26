@@ -1,5 +1,3 @@
 #!/usr/bin/env bash
 echo "Uninstalling pmcli."
-rm -rf ~/.local/share/pmcli ~/.config/pmcli/
-sudo rm /usr/local/bin/pmcli
-echo "Uninstalled pmcli."
+rm -rf /home/${SUDO_USER}/.config/pmcli /etc/pmcli /usr/local/bin/pmcli

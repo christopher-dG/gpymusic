@@ -1,13 +1,13 @@
 # pmcli
-Stream Google Play Music from a Linux terminal, thanks to [gmusicapi](https://github.com/simon-weber/gmusicapi)
+Brows and stream Google Play Music from a Linux terminal, thanks to [gmusicapi](https://github.com/simon-weber/gmusicapi)
 
 ### Dependencies 
 pmcli depends on `mpv` to play music and `gmusicapi` to access Google Play.
 
-### Installation
+### Installation/Uninstallation
 - `git clone https://github.com/christopher-dG/pmcli`
 - `cd pmcli`
-- `./install.sh`
+- `sudo ./install.sh`, or `sudo ./uninstall.sh`
 
 Don't forget to manually edit your config file in `~/.config/pmcli`.
 
