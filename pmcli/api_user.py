@@ -30,7 +30,7 @@ class APIUser:  # we use this to interact with the MobileClient
 
     @staticmethod
     def search(query, max_items=10):  # searches google play for some user input
-        print('Searching for %s:' % query)
+        print('Searching for %s:' % query.title())
         query_results = API.search(query, max_items)
         # returns a dict of lists with keys 'songs', 'artists', and 'albums'
         # each list has a maximu length of max_items

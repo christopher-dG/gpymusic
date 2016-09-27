@@ -49,9 +49,10 @@ class Artist(MusicObject):
         return self.name
 
     def play(self):  # play top tracks
+        print('Playing %s:' % self.to_string())
         for song in self.contents['songs']:
             url = api_user.API.get_stream_url(song['id'])
-            print('Playing %s:' % (' - '.join((self.name, song['name']))))
+            print('* %s:' % (' - '.join((song['name'], api_user.API.get_track_info(song['id'])['album']))))
             # we set the exit code for 'q' to 11 in our custom input.conf
             if subprocess.call(['mpv', '--really-quiet', '--input-conf=~/.config/pmcli/mpv_input.conf', url]) is 11:
                 break
@@ -86,9 +87,10 @@ class Album(MusicObject):
         return ' - '.join((self.contents['artist'][0]['name'], self.name))
 
     def play(self):  # play the album's songs
+        print('Playing %s:' % self.to_string())
         for song in self.contents['songs']:
             url = api_user.API.get_stream_url(song['id'])
-            print('Playing %s:' % (' - '.join((self.contents['artist'][0]['name'], song['name'], self.name))))
+            print('* %s:' % (' - '.join((self.contents['artist'][0]['name'], song['name']))))
             # we set the exit code for 'q' to 11 in our custom input.conf
             if subprocess.call(['mpv', '--really-quiet', '--input-conf=~/.config/pmcli/mpv_input.conf', url]) is 11:
                 break
