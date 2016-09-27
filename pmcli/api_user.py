@@ -34,8 +34,8 @@ class APIUser:  # we use this to interact with the MobileClient
         query_results = API.search(query, max_items)
         # returns a dict of lists with keys 'songs', 'artists', and 'albums'
         # each list has a maximu length of max_items
-        return {'artists': [music_objects.Artist(API.get_artist_info(artist['artist']['artistId'])) for artist in
-                            query_results['artist_hits']],
+        return {'artists': [music_objects.Artist(API.get_artist_info(artist['artist']['artistId'], max_top_tracks=max_items))
+                            for artist in query_results['artist_hits']],
                 'albums': [music_objects.Album(API.get_album_info(album['album']['albumId'])) for album in
                            query_results['album_hits']],
                 'songs': [music_objects.Song(API.get_track_info(song['track']['storeId'])) for song in

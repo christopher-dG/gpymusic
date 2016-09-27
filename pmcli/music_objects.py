@@ -14,6 +14,7 @@ class MusicObject(abc.ABC):  # albums, artists, and songs are represented as Mus
 
     @abc.abstractmethod
     def play(self):  # stream the item
+        # todo: generalize play methods for all MusicObjects
         pass
 
     @abc.abstractmethod
@@ -50,12 +51,15 @@ class Artist(MusicObject):
 
     def play(self):  # play top tracks
         print('Playing %s:' % self.to_string())
+        i = 1
         for song in self.contents['songs']:
             url = api_user.API.get_stream_url(song['id'])
-            print('* %s:' % (' - '.join((song['name'], api_user.API.get_track_info(song['id'])['album']))))
+            print('(%d/%d): %s' % (i, len(self.contents['songs']),
+                                   ' - '.join((song['name'], api_user.API.get_track_info(song['id'])['album']))))
             # we set the exit code for 'q' to 11 in our custom input.conf
             if subprocess.call(['mpv', '--really-quiet', '--input-conf=~/.config/pmcli/mpv_input.conf', url]) is 11:
                 break
+            i += 1
 
     def show(self):  # print artist name, then list of albums, then list of songs
         i = 1
@@ -88,12 +92,15 @@ class Album(MusicObject):
 
     def play(self):  # play the album's songs
         print('Playing %s:' % self.to_string())
+        i = 1
         for song in self.contents['songs']:
             url = api_user.API.get_stream_url(song['id'])
-            print('* %s:' % (' - '.join((self.contents['artist'][0]['name'], song['name']))))
+            print('(%d/%d): %s' %
+                  (i, len(self.contents['songs']), ' - '.join((self.contents['artist'][0]['name'], song['name']))))
             # we set the exit code for 'q' to 11 in our custom input.conf
             if subprocess.call(['mpv', '--really-quiet', '--input-conf=~/.config/pmcli/mpv_input.conf', url]) is 11:
                 break
+            i += 1
 
     def show(self):  # print the album name, then list of songs
         i = 1
