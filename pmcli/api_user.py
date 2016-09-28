@@ -29,6 +29,7 @@ class APIUser:  # we use this to interact with the MobileClient
         return user_info  # returns a dict with keys 'email', 'password', and 'deviceid'
 
     @staticmethod
+    # todo: allow user to specify max_items
     def search(query, max_items=10):  # searches google play for some user input
         print('Searching for %s:' % query.title())
         query_results = API.search(query, max_items)
