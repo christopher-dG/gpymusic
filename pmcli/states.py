@@ -107,12 +107,12 @@ class HelpState(NoChangeState):
 
     def show(self):
         print('Commands:')
-        print('h/help: Show this help message')
         print('s/search search-term: Search for search-term')
-        print('q/quit: Exit pmcli')
-        print('p/play 123: Play item number 123')
         print('i/info 123: Show info on item number 123')
-
+        print('p/play 123: Play item number 123')
+        print('q/quit: Exit pmcli')
+        print('h/help: Show this help message')
+        
 # ------------------------------------------------------------
 
 
