@@ -3,7 +3,6 @@ Type=Application
 Version=1.0
 Name=pmcli
 Comment=Command line Google Play Music client
-Path=/usr/local/bin
 Exec=bash -c 'pmcli'
 Categories=Audio;
 Keywords=Music;Audio;
