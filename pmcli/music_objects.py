@@ -135,5 +135,5 @@ class Song(MusicObject):
         print('Playing %s:' % self.to_string())
         subprocess.call(['mpv', '--really-quiet', url])
 
-    def show(self):  # print the foratted song info
+    def show(self):  # print the formatted song info
         print('1: %s' % (self.to_string()))

@@ -9,7 +9,7 @@ def transition(current_state, user_input):  # takes the user input and generates
     if isinstance(current_state, states.NoChangeState):  # restore old state if we had invalid input
         current_state = current_state.last_state
     user_input = [i.strip().lower() for i in user_input.split(' ', 1)]  # command - the rest
-    if len(user_input) is 2 and user_input[1]: # command with no argument (invalid except for help and quit)
+    if len(user_input) is 2 and user_input[1]:  # command with no argument (invalid except for help and quit)
         # search
         if user_input[0] == 's' or user_input[0] == 'search':
             next_state = states.SearchResultsState(api_user.APIUser.search(user_input[1], MAX_ITEMS))

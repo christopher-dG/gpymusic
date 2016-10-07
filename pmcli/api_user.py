@@ -10,7 +10,7 @@ class APIUser:  # we use this to interact with the MobileClient
     def login():  # log into google music
         user_info = APIUser.read_config()
         if not API.login(user_info['email'], user_info['password'], user_info['deviceid']):
-            print('Login failed (exiting).')
+            input('Login failed: enter any key to exit.')
             quit()
         print('Logged in as %s.' % user_info['email'])
         return API  # return the Mobileclient interface that we can now use anywhere
@@ -19,7 +19,7 @@ class APIUser:  # we use this to interact with the MobileClient
     def read_config():  # reads the config file to get login info
         config_path = os.path.join(os.path.expanduser('~'), '.config', 'pmcli', 'config')
         if not os.path.isfile(config_path):
-            print('Config file not found at %s, (exiting).' % config_path)
+            input('Config file not found at %s: press any key to exit.' % config_path)
             quit()
         user_info = {}
         with open(config_path, 'r') as config:
@@ -34,9 +34,10 @@ class APIUser:  # we use this to interact with the MobileClient
         print('Searching for %s:' % query.title())
         query_results = API.search(query, max_items)
         # returns a dict of lists with keys 'songs', 'artists', and 'albums'
-        # each list has a maximu length of max_items
-        return {'artists': [music_objects.Artist(API.get_artist_info(artist['artist']['artistId'], max_top_tracks=max_items))
-                            for artist in query_results['artist_hits']],
+        # each list has a maximum length of max_items
+        return {'artists': [
+            music_objects.Artist(API.get_artist_info(artist['artist']['artistId'], max_top_tracks=max_items))
+            for artist in query_results['artist_hits']],
                 'albums': [music_objects.Album(API.get_album_info(album['album']['albumId'])) for album in
                            query_results['album_hits']],
                 'songs': [music_objects.Song(API.get_track_info(song['track']['storeId'])) for song in
