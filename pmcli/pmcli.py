@@ -1,4 +1,6 @@
 #!/usr/bin/python
+import warnings
+warnings.simplefilter('ignore', UserWarning)
 import api_user
 import states
 
