@@ -30,7 +30,7 @@ class ExpandableState(State):  # ExpandableStates have lists that we can interac
 # ------------------------------------------------------------
 
 
-class NoChangeState(State):  # NoChangeStates are states that have no affect on our position in the program
+class NoChangeState(State):  # NoChangeStates are states that have no effect on our position in the program
     def __init__(self, last_state):  # last_state is the state that will be later restored
         self.last_state = last_state
 
