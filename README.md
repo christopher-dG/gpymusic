@@ -9,7 +9,8 @@ pmcli depends on Python 3, `mpv`, and `gmusicapi`.
 - `cd pmcli`
 - `mkdir -p ~/.config/pmcli`
 - `cp config mpv_input.conf ~/.config/pmcli`
-To run the program locally, you can stop here. If you wish to install:
+
+If you just want to run the program locally, you can stop here. If you wish to install:
 - cp -r pmcli /etc/
 - chmod +x /etc/pmcli/pmcli.py
 - ln -s /etc/pmcli/pmcli.py /usr/local/bin/pmcli
@@ -23,8 +24,10 @@ To find a valid device ID, configure email and password in `config`, and then ru
 Running locally: 
 - `cd pmcli/pmcli`
 - `python pmcli.py`
+
 Installed:
 - `pmcli`
+
 Note: If your python 3 binary is not located at `/usr/bin/python`, you will need to edit the first line of `pmcli.py`. 
 
 ### Controls
@@ -41,9 +44,8 @@ When playing music:
 - `n`: next track
 - `q`: stop
 
-No seek backwards function yet, sorry ._.
-
-### Todo, when I have time and motivation:
+### Todo, when I have time and motivation (not ordered by priority):
+- seek backwards function
 - playlist support
 - a pretty-looking ncurses UI, colour themes
 - option to go back to previous state
