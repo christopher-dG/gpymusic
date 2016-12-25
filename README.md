@@ -11,9 +11,9 @@ pmcli depends on Python 3, `mpv`, and `gmusicapi`.
 - `cp config mpv_input.conf ~/.config/pmcli`
 
 If you just want to run the program locally, you can stop here. If you wish to install:
-- cp -r pmcli /etc/
-- chmod +x /etc/pmcli/pmcli.py
-- ln -s /etc/pmcli/pmcli.py /usr/local/bin/pmcli
+- `cp -r pmcli /etc/`
+- `chmod +x /etc/pmcli/pmcli.py`
+- `ln -s /etc/pmcli/pmcli.py /usr/local/bin/pmcli`
 
 Don't forget to manually edit your config file in `~/.config/pmcli`!
 
