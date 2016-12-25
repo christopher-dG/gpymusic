@@ -2,20 +2,30 @@
 Browse and stream Google Play Music from a Linux terminal, thanks to [gmusicapi](https://github.com/simon-weber/gmusicapi)
 
 ### Dependencies 
-pmcli depends on `mpv` to play music and `gmusicapi` to access Google Play.
+pmcli depends on Python 3, `mpv`, and `gmusicapi`.
 
-### Installation/Uninstallation
+### Setup
 - `git clone https://github.com/christopher-dG/pmcli`
 - `cd pmcli`
-- `sudo ./install.sh`, or `sudo ./uninstall.sh`
+- `mkdir -p ~/.config/pmcli`
+- `cp config mpv_input.conf ~/.config/pmcli`
+To run the program locally, you can stop here. If you wish to install:
+- cp -r pmcli /etc/
+- chmod +x /etc/pmcli/pmcli.py
+- ln -s /etc/pmcli/pmcli.py /usr/local/bin/pmcli
 
-Don't forget to manually edit your config file in `~/.config/pmcli`.
+Don't forget to manually edit your config file in `~/.config/pmcli`!
 
 ### Getting your device ID
 To find a valid device ID, configure email and password in `config`, and then run `python get_dev_id.py` to print out a list of IDs for you to try.
 
-### Running
-Simply run `pmcli` to launch.
+### Running `pmcli`
+Running locally: 
+- `cd pmcli/pmcli`
+- `python pmcli.py`
+Installed:
+- `pmcli`
+Note: If your python 3 binary is not located at `/usr/bin/python`, you will need to edit the first line of `pmcli.py`. 
 
 ### Controls
 - `h/help`: print help
@@ -33,7 +43,7 @@ When playing music:
 
 No seek backwards function yet, sorry ._.
 
-### Todo
+### Todo, when I have time and motivation:
 - playlist support
 - a pretty-looking ncurses UI, colour themes
 - option to go back to previous state
