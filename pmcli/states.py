@@ -11,12 +11,16 @@ class State(abc.ABC):  # states hold info on where we are in the program
 # ------------------------------------------------------------
 
 
-class ExpandableState(State):  # ExpandableStates have lists that we can interact with
-    def __init__(self, content):  # content is either a dict MusicObjects or a MusicObject
+class ExpandableState(State):
+    # ExpandableStates have lists that we can interact with
+    def __init__(self, content):
+        # content is either a dict MusicObjects or a MusicObject
         self.content = content
 
     @abc.abstractclassmethod
-    def get_option(self, num):  # return the appropriate MusicObject by matching  an inputted number to a list entry
+    def get_option(self, num):
+        # return the appropriate MusicObject by matching
+        # an inputted number to a list entry
         pass
 
     @abc.abstractclassmethod
@@ -30,8 +34,11 @@ class ExpandableState(State):  # ExpandableStates have lists that we can interac
 # ------------------------------------------------------------
 
 
-class NoChangeState(State):  # NoChangeStates are states that have no effect on our position in the program
-    def __init__(self, last_state):  # last_state is the state that will be later restored
+class NoChangeState(State):
+    # NoChangeStates are states that have no effect
+    # on our position in the program
+    def __init__(self, last_state):
+        # last_state is the previous state that will be later restored
         self.last_state = last_state
 
     @abc.abstractmethod
@@ -42,7 +49,8 @@ class NoChangeState(State):  # NoChangeStates are states that have no effect on 
 
 
 class SearchResultsState(ExpandableState):
-    def __init__(self, search_results):  # search_results is a dict of MusicObjects from Mobileclient.search
+    def __init__(self, search_results):
+        # search_results is a dict of MusicObjects from Mobileclient.search
         super().__init__(search_results)
 
     def length(self):  # return number of search_results
@@ -50,14 +58,17 @@ class SearchResultsState(ExpandableState):
 
     def show(self):  # print search results
         i = 1
+
         for key in sorted(self.content):  # albums, artists, songs
             print('%s:' % key.capitalize())
+
             for item in self.content[key]:
                 print('%d: %s' % (i, item.to_string()))
                 i += 1
 
     def get_option(self, num):  # return the num-th search result
         i = 1
+
         for key in sorted(self.content):
             for item in self.content[key]:
                 if i is num:
@@ -78,23 +89,36 @@ class ShowObjectState(ExpandableState):
     def show(self):  # display the MusicObject
         self.content.show()
 
-    def get_option(self, num):  # return the num-th entry in music_object's combined sublists
+    def get_option(self, num):
+        # return the num-th entry in music_object's combined sublists
         i = 1
+
         if i is num:
             return self.content  # first entry is the MusicObject itself
+
         else:
             i += 1
+
             for key in sorted(self.content.contents):
                 for item in self.content.contents[key]:
                     if i is num:
-                        # artist IDs start with A, albums with B, and songs with T
-                        # we need to create a new MusicObject because item only holds the name + id
+
+                        # artist IDs start with A, albums with B, songs with T
+                        # we need to create a new MusicObject because item
+                        # only holds the name + id
+
                         if item['id'].startswith('A'):
-                            return music_objects.Artist(api_user.API.get_artist_info(item['id']))
+                            return music_objects.Artist(
+                                api_user.API.get_artist_info(item['id']))
+
                         elif item['id'].startswith('B'):
-                            return music_objects.Album(api_user.API.get_album_info(item['id']))
+                            return music_objects.Album(
+                                api_user.API.get_album_info(item['id']))
+
                         elif item['id'].startswith('T'):
-                            return music_objects.Song(api_user.API.get_track_info(item['id']))
+                            return music_objects.Song(
+                                api_user.API.get_track_info(item['id']))
+
                     else:
                         i += 1
 
@@ -112,7 +136,7 @@ class HelpState(NoChangeState):
         print('p/play 123: Play item number 123')
         print('q/quit: Exit pmcli')
         print('h/help: Show this help message')
-        
+
 # ------------------------------------------------------------
 
 

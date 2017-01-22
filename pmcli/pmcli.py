@@ -1,34 +1,44 @@
 #!/usr/bin/python
-import warnings
-warnings.simplefilter('ignore', UserWarning)
 import api_user
 import states
+import warnings
+warnings.simplefilter('ignore', UserWarning)
 
 MAX_ITEMS = 10  # maximum number of api search results of each type
 
 
-def transition(current_state, user_input):  # takes the user input and generates the next state
-    if isinstance(current_state, states.NoChangeState):  # restore old state if we had invalid input
+def transition(current_state, user_input):
+    # takes the user input and generates the next state
+
+    if isinstance(current_state, states.NoChangeState):
+        # restore old state if we had invalid input
         current_state = current_state.last_state
-    user_input = [i.strip().lower() for i in user_input.split(' ', 1)]  # command - the rest
-    if len(user_input) is 2 and user_input[1]:  # command with no argument (invalid except for help and quit)
+
+    # user input should take the form of [command | everything else]
+    user_input = [i.strip().lower() for i in user_input.split(' ', 1)]
+    if len(user_input) is 2 and user_input[1]:
+
         # search
         if user_input[0] == 's' or user_input[0] == 'search':
-            next_state = states.SearchResultsState(api_user.APIUser.search(user_input[1], MAX_ITEMS))
+            next_state = states.SearchResultsState(
+                api_user.APIUser.search(user_input[1], MAX_ITEMS))
+
         # info
-        elif (user_input[0] == 'i' or user_input[0] == 'info') and isinstance(current_state,
-                                                                              states.ExpandableState):
+        elif (user_input[0] == 'i' or user_input[0] == 'info') and isinstance(
+                current_state, states.ExpandableState):
             try:
                 num = int(user_input[1])
                 if num > current_state.length() or num <= 0:
                     next_state = states.InvalidInputState(current_state)
                 else:  # valid input
-                    next_state = states.ShowObjectState(current_state.get_option(num))
+                    next_state = states.ShowObjectState(
+                        current_state.get_option(num))
             except ValueError:
                 next_state = states.InvalidInputState(current_state)
+
         # play
-        elif (user_input[0] == 'p' or user_input[0] == 'play') and isinstance(current_state,
-                                                                              states.ExpandableState):
+        elif (user_input[0] == 'p' or user_input[0] == 'play') and isinstance(
+                current_state, states.ExpandableState):
             try:
                 num = int(user_input[1])
                 if num > current_state.length() or num <= 0:
@@ -38,17 +48,24 @@ def transition(current_state, user_input):  # takes the user input and generates
                     next_state = current_state
             except ValueError:
                 next_state = states.InvalidInputState(current_state)
+
+        # inalid input
         else:
             next_state = states.InvalidInputState(current_state)
+
     else:
+        # command with no argument (invalid except for help and quit)
+
         # help
         if user_input[0] == 'h' or user_input[0] == 'help':
             next_state = states.HelpState(current_state)
+
         # quit
         elif user_input[0] == 'q' or user_input[0] == 'quit':
             if input('Quit? Enter q again to confirm: ') == 'q':
                 quit()
             next_state = current_state
+
         # invalid input
         else:
             next_state = states.InvalidInputState(current_state)
