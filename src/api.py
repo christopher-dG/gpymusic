@@ -1,44 +1,43 @@
 from configparser import ConfigParser
 from gmusicapi import Mobileclient
 from os.path import expanduser, isfile, join
+from util import addstr, leave
 
 api = Mobileclient()  # our interface to google music
 
 
-def login():
-    user = read_config()
+def login(win):
+    user = read_config(win)
 
     try:
         if not api.login(
                 user['email'], user['password'], user['deviceid']
         ):
-            input('Login failed: enter any key to exit.')
-            quit()
+            addstr(win, 'Login failed: Exiting.')
+            leave(2)
     except KeyError:
-        print('Config file is missing email, password, or device ID: '
-              'enter any key to exit.')
-        quit()
+        addstr(win, 'Config file is missing one or more fields: Exiting.')
+        leave(2)
 
-    return user['email']
+    addstr(win, 'Logging in... Logged in as %s.' % user['email'])
 
 
-def read_config():  # reads the config file to get login info
+def read_config(win):  # reads the config file to get login info
     parser = ConfigParser()
-    path = join(
+    p = join(
         expanduser('~'), '.config', 'pmcli', 'config'
     )
-    if not isfile(path):
-        input('Config file not found at %s: press any key to exit.'
-              % path)
-        quit()
+    if not isfile(p):
+        addstr(win, 'Config file not found at %s: Exiting.' % p)
+        leave(2)
 
-    parser.read(path)
+    parser.read(p)
     user_info = {}
     try:
         for key in parser['auth']:
             user_info[key] = parser['auth'][key]
     except KeyError:
-        input('Config file is missing [auth] section: press any key to exit.')
-        quit()
+        addstr(win, 'Config file is missing [auth] section: Exiting.')
+        leave(2)
 
     return user_info

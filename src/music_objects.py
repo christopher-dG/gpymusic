@@ -1,57 +1,27 @@
 from api import api
-import subprocess
-
-
-def search(query, max_items=10):
-    # searches google play for some user input
-    print('Searching for %s:' % query.title())
-    query_results = api.search(query, max_items)
-
-    # returns a dict of lists with keys 'songs', 'artists', and 'albums'
-    # each list has a maximum length of max_items
-    return {
-        'artists': [
-            Artist(api.get_artist_info(
-                artist['artist']['artistId'], max_top_tracks=max_items))
-            for artist in query_results['artist_hits']
-        ],
-        'albums': [
-            Album(api.get_album_info(
-                album['album']['albumId']))
-            for album in query_results['album_hits']],
-        'songs': [
-            Song(api.get_track_info(
-                song['track']['storeId']))
-            for song in query_results['song_hits']
-        ]
-    }
+from subprocess import call
+from util import to_string, addstr
+from random import shuffle
 
 
 class MusicObject(dict):
-    # Every MusicObject should at least have a name and id.
+    # Every MusicObject should at least have a name, id, and kind.
     def __init__(self, id, name, kind):
         self.__setitem__('id', id)
         self.__setitem__('name', name)
         self.__setitem__('kind', kind)
 
-    def play(self, win):
-        def to_string(song):
-            return ' - '.join((song['name'], song['artist']))
-
-        songs = [
-            (self['id'], to_string(self))] if self['kind'] == 'song' else [
-                (song['id'], to_string(song)) for song in self['songs']
-            ]
+    @staticmethod
+    def play(win, items):
         path = '~/.config/pmcli/mpv_input.conf'
-        for id, string in songs:
-            url = api.get_stream_url(id)
-            win.erase()
-            win.addstr('Now playing: %s' % string)
-            win.refresh()
-            if subprocess.call(
+        for i in range(len(items)):
+            url = api.get_stream_url(items[i][0])
+            addstr(win, 'Now playing: %s' % items[i][1])
+            if call(
                     ['mpv', '--really-quiet', '--input-conf', path, url]
             ) is 11:
-                break
+                return items[i:]
+        return None
 
 
 class Artist(MusicObject):
@@ -82,37 +52,30 @@ class Artist(MusicObject):
         except KeyError:
             self.__setitem__('albums', [])
 
-    def collect(self, limit=None):
-        items = {
-            'songs': [
-                Song(api.get_track_info(song['id']))
-                for song in self['songs']
-            ],
+    def play(self, win):
+        MusicObject.play(
+            win, [(item['id'], to_string(item)) for item in self['songs']]
+        )
+
+    def collect(self, limit=20):
+        aggregate = {
+            'songs': [],
             'artists': [self],
-            'albums': [
-                Album(api.get_album_info(album['id']))
-                for album in self['albums']
-            ]
+            'albums': []
         }
 
-        if limit is not None:
-            for k in items.keys():
-                items[k] = items[k][:limit]
+        songs = iter(self['songs'])
+        albums = iter(self['albums'])
+        for i in range(limit):
+            aggregate['songs'].append(
+                Song(api.get_track_info(next(songs))['id'])
 
-        return items
+            )
+            aggregate['albums'].append(
+                Album(api.get_album_info(next(albums))['id'])
+            )
 
-    @staticmethod
-    def show_fields(width):
-        index_chars = 3
-        count_chars = 7
-        artist_chars = width - index_chars - 2*count_chars
-        artist_start = 0 + index_chars
-        album_count_start = artist_start + artist_chars
-        song_count_start = album_count_start + count_chars
-        song_offset = 3
-        album_offset = 3
-        return (index_chars, artist_chars, count_chars, artist_start,
-                song_count_start, album_count_start, song_offset, album_offset)
+        return aggregate
 
 
 class Album(MusicObject):
@@ -134,40 +97,28 @@ class Album(MusicObject):
         except KeyError:
             self.__setitem__('songs', [])
 
-    def collect(self, limit=None):
-        items = {
-            'songs': [
-                Song(api.get_track_info(song['id']))
-                for song in self['songs']
-            ],
-            # Artist IDs is already a list.
+    def play(self, win):
+        MusicObject.play(
+            win, [(item['id'], to_string(item)) for item in self['songs']]
+        )
+
+    def collect(self, limit=20):
+        aggregate = {
+            'songs': [],
             'artists': [
                 Artist(api.get_artist_info(id)) for id in self['artist_ids']
             ],
-            'albums': [self]
+            'albums': [self],
         }
 
-        if limit is not None:
-            for k in items.keys():
-                items[k] = items[k][:limit]
+        songs = iter(self['songs'])
+        for i in range(limit):
+            aggregate['songs'].append(
+                Song(api.get_track_info(next(songs))['id'])
 
-        return items
+            )
 
-    @staticmethod
-    def show_fields(width):
-        index_chars = 3
-        count_chars = 6
-        album_chars = artist_chars = int((width - index_chars - count_chars)/2)
-        total = sum([index_chars, count_chars, album_chars, artist_chars])
-        if total != width:
-            album_chars += width - total
-        album_start = index_chars
-        artist_start = album_start + album_chars
-        song_count_start = artist_start + artist_chars
-        song_offset = 2
-
-        return (index_chars, album_chars, artist_chars, count_chars,
-                album_start, artist_start, song_count_start, song_offset)
+        return aggregate
 
 
 class Song(MusicObject):
@@ -179,8 +130,11 @@ class Song(MusicObject):
         self.__setitem__('album', song['album'])
         self.__setitem__('album_id', song['albumId'])
 
+    def play(self, win):
+        MusicObject.play(win, [(self['id'], to_string(self))])
+
     def collect(self, limit=None):
-        items = {
+        return {
             'songs': [self],
             'artists': [
                 Artist(api.get_artist_info(id)) for id in self['artist_ids']
@@ -188,22 +142,27 @@ class Song(MusicObject):
             'albums': [Album(api.get_album_info(self['album_id']))]
         }
 
-        if limit is not None:
-            for k in items.keys():
-                items[k] = items[k][:limit]
 
-        return items
+class Playlist(list):
+    def __init__(self):
+        super().__init__(self)
 
-    @staticmethod
-    def show_fields(width):
-        index_chars = 3
-        title_chars = int((width - index_chars)/2)
-        artist_chars = album_chars = int((width - index_chars)/4)
-        total = sum([index_chars, title_chars, artist_chars, album_chars])
-        if total != width:
-            title_chars += width - total
-        title_start = 0 + index_chars
-        artist_start = title_start + title_chars
-        album_start = artist_start + artist_chars
-        return (index_chars, title_chars, artist_chars, album_chars,
-                title_start, artist_start, album_start)
+    def play(self, win, s=False):
+        if list(self.collect().values()) == [[], [], []]:
+            return None
+        items = [(item['id'], to_string(item)) for item in self]
+        if s:
+            shuffle(items)
+        del self[:]
+
+        remainder = MusicObject.play(win, items)
+        if remainder is not None:
+            for item in remainder:
+                self.append(item)
+
+    def collect(self):
+        aggregate = {'songs': [], 'artists': [], 'albums': []}
+        for item in self:
+            aggregate[item['kind'] + 's'].append(item)
+
+        return aggregate

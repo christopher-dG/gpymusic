@@ -1,43 +1,45 @@
 import curses as crs
 from api import api, login
-from music_objects import Song, Artist, Album
+from music_objects import Song, Artist, Album, Playlist
+from util import addstr, to_string, leave, measure_fields
 
 
 def get_input():
-    inbar.addstr('> ')
+    addstr(inbar, '> ')
     try:
         input = inbar.getstr()
     except KeyboardInterrupt:
-        crs.endwin()
-        quit()
+        addstr(outbar, 'Goodbye, thanks for using pmcli!')
+        leave(1)
     inbar.deleteln()
     return input.decode('utf-8')
 
 
-def help(arg=None):
-    main.erase()
-    main.addstr(
+def help(arg=0):
+    addstr(
+        main,
         """Commands:
         s/search search-term: Search for search-term
         e/expand 123: Expand item number 123
+        p/play: Play current queue
         p/play 123: Play item number 123
-        p/play q: Play current queue
-        q/quit: Exit pmcli
+        q/queue: Show current queue
+        q/queue 123:  Add item number 123 to queue
         h/help: Show this help message
-        """)
-    return None
+        Ctrl-C: Exit pmcli
+        """
+    )
+    return None, None
 
 
-def search(query=None):
+def search(query):
     if query is None:
-        invalid(msg='Missing search query.')
-        return None
+        invalid('Missing search query.')
+        return None, None
 
     # Fetch as many results as we can display.
-    limit = int((crs.LINES - 6)/3)
-    outbar.erase()
-    outbar.addstr('Searching for \'%s\'...' % query)
-    outbar.refresh()
+    limit = int((main.getmaxyx()[0] - 6)/3)
+    addstr(outbar, 'Searching for \'%s\'...' % query)
     result = api.search(query, max_results=limit)
 
     # Creating MusicObjects is expensive, so only create as many as we need
@@ -85,13 +87,10 @@ def search(query=None):
             except StopIteration:
                 pass
 
-    outbar.erase()
-    outbar.addstr('Enter \'e #\' or \'p #\' to expand or play an item.')
-
-    return parsed
+    return parsed, None
 
 
-def get_option(num, content):
+def get_option(num):
     if num < 0 or num > sum([len(content[k]) for k in content.keys()]):
         return None
     i = 1
@@ -104,98 +103,91 @@ def get_option(num, content):
     return None
 
 
-def expand(num=-1, content=None):
+def expand(num):
     if num == -1 or content is None:
-        invalid(msg='Missing argument to play.')
-        return None
+        invalid('Missing argument to play.')
+        return None, None
     try:
         num = int(num)
     except ValueError:
-        invalid(msg='Invalid argument to play.')
-        return None
-    opt = get_option(num, content)
+        invalid('Invalid argument to play.')
+        return None, None
+    opt = get_option(num)
     if opt is None:
-        invalid(msg='Invalid number. Valid between 1-%d' %
+        invalid('Invalid number. Valid between 1-%d' %
                 sum([len(content[k]) for k in content.keys()]))
-        return None
+        return None, None
 
-    outbar.erase()
-    outbar.addstr('Loading \'%s\'...' % opt['name'])
-    outbar.refresh()
+    addstr(outbar, 'Loading \'%s\'...' % to_string(opt))
 
-    content = opt.collect(limit=int(main.getmaxyx()[0]/2))
-    return content
+    return opt.collect(limit=int((main.getmaxyx()[0] - 6)/3)), None
 
 
-def show_queue():
-    pl = {'song': [], 'artist': [], 'album': []}
-    for item in playlist:
-        pl[item['kind']].append(item)
-    for key in pl.keys():
-        pl[key + 's'] = pl.pop(key)
-    return pl
+def play_queue():
+    if playlist.play(player) is None:
+        invalid('Queue is empty.')
 
 
-def play(arg=-1, content=None):
-    if arg == -1 or content is None:
-        invalid(msg='Missing argument to play.')
-        return None
-    try:
-        num = int(arg)
-    except ValueError:
-        if arg == 'q':
-            for item in playlist:
-                item.play(player)
-                return content
-        else:
-            invalid(msg='Invalid argument to play.')
-            return None
-    except TypeError:
-        invalid(msg='Missing argument to play.')
-    opt = get_option(num, content)
-    if opt is None:
-        invalid(msg='Invalid number. Valid between 1-%d' %
-                sum([len(content[k]) for k in content.keys()]))
-        return None
-    opt.play(player)
-    return content
-
-
-def invalid(msg=None):
-    outbar.erase()
-    outbar.addstr(
-        'Error: ' + (msg if msg else '') +
-        ' Enter h or help for help.'
-    )
-
-
-def queue(arg=-1, content=None):
-    if arg in ('s', 'show'):
-        content = show_queue()
-        return content
+def play(arg):
+    if arg is None:
+        play_queue()
+        return content, None
     elif content is None:
-        invalid(msg='Missing argument to play.')
-        return None
+        invalid('Wrong context for play.')
+        return content, None
+    try:
+        num = int(arg)
+    except ValueError:
+        invalid('Invalid argument to play.')
+        return content, None
+    except TypeError:
+        invalid('Missing argument to play.')
+        return content, None
+
+    opt = get_option(num)
+    if opt is None:
+        invalid('Invalid number. Valid between 1-%d' %
+                sum([len(content[k]) for k in content.keys()]))
+    else:
+        opt.play(player)
+
+    return content, None
+
+
+def invalid(msg):
+    addstr(outbar, 'Error: ' + msg + ' Enter \'h\' or \'help\' for help.')
+
+
+def queue(arg):
+    out = None
+    if arg is None:
+        q = playlist.collect()
+        if list(q.values()) == [[], [], []]:
+            invalid('Nothing in the queue.')
+            return content, out
+        return q, out
+    elif content is None:
+        invalid('Wrong context for queue.')
+        return content, out
     try:
         num = int(arg)
     except ValueError:
         invalid(msg='Invalid argument to play.')
-        return None
-    opt = get_option(num, content)
+        return content, out
+
+    opt = get_option(num)
+    addstr(main, to_string(opt))
     if opt is None:
         invalid(msg='Invalid number. Valid between 1-%d' %
                 sum([len(content[k]) for k in content.keys()]))
-        return None
-    outbar.erase()
-    outbar.addstr('Added \'%s\' to queue.' % opt['name'])
-    playlist.append(opt)
-    return content
+    else:
+        playlist.append(opt)
+        out = 'Added \'%s\' to queue.' % to_string(opt)
+
+    return content, out
 
 
 def transition(input, content):
-    outbar.erase()
-    outbar.addstr(input)
-
     commands = {
         'h': help,
         'help': help,
@@ -217,18 +209,16 @@ def transition(input, content):
 
     # Todo: make this less ugly.
     if command in commands:
-        if commands[command] in (play, expand, queue):
-            content = commands[command](arg, content)
-        else:
-            content = commands[command](arg)
+        content, out = commands[command](arg)
         if content is not None:
-            main.erase()
-            display(content)
+            if out is not None:
+                display(content, out)
+            else:
+                display(content)
     else:
-        invalid(msg='Nonexistent command.')
+        invalid('Nonexistent command.')
 
-    refresh()
-    return content
+    return content,
 
 
 def trunc(string, chars):
@@ -238,74 +228,66 @@ def trunc(string, chars):
         return string[:-((len(string) - chars) + 3)] + '...'
 
 
-def display(content):
-    width = main.getmaxyx()[1]
-
-    (index_chars, title_chars, artist_chars, album_chars,
-     title_start, artist_start, album_start) = Song.show_fields(width)
-
+def display(content, out=None):
+    if out is not None:
+        outbar.addstr(out)
     main.erase()
     y, i = 0, 1
+    (index_chars, name_chars, artist_chars, album_chars, count_chars,
+     name_start, artist_start, album_start, song_count_start,
+     album_count_start, offset) = measure_fields(main.getmaxyx()[1])
 
     if content['songs']:
         main.addstr(y, 0, '#')
-        main.addstr(y, title_start, trunc('Title', title_chars))
+        main.addstr(y, name_start, trunc('Title', name_chars))
         main.addstr(y, artist_start, trunc('Artist', artist_chars))
         main.addstr(y, album_start, trunc('Album', album_chars))
         y += 1
     for song in content['songs']:
         main.addstr(y, 0, str(i).zfill(2))
-        main.addstr(y, title_start, trunc(song['name'], title_chars))
+        main.addstr(y, name_start, trunc(song['name'], name_chars))
         main.addstr(y, artist_start, trunc(song['artist'], artist_chars))
         main.addstr(y, album_start, trunc(song['album'], album_chars))
         y += 1
         i += 1
 
-    (index_chars, artist_chars, count_chars, artist_start, song_count_start,
-     album_count_start, song_offset, album_offset) = Artist.show_fields(width)
-
     if content['artists']:
         main.addstr(y, 0, '#')
-        main.addstr(y, artist_start, trunc('Artist', artist_chars))
+        main.addstr(y, name_start, trunc('Artist', name_chars))
         main.addstr(y, song_count_start, trunc(' Songs', count_chars))
         main.addstr(y, album_count_start, trunc('Albums', count_chars))
         y += 1
     for artist in content['artists']:
         main.addstr(y, 0, str(i).zfill(2))
-        main.addstr(y, title_start, trunc(artist['name'], artist_chars))
+        main.addstr(y, name_start, trunc(artist['name'], name_chars))
         main.addstr(
-            y, song_count_start+song_offset,
+            y, song_count_start + offset,
             str(len((artist['songs']))).zfill(2)
         )
         main.addstr(
-            y, album_count_start+album_offset,
+            y, album_count_start + offset,
             str(len((artist['albums']))).zfill(2)
         )
         y += 1
         i += 1
 
-    (index_chars, album_chars, artist_chars, count_chars, album_start,
-     artist_start, song_count_start, song_offset) = Album.show_fields(width)
-
     if content['albums']:
         main.addstr(y, 0, '#')
-        main.addstr(y, album_start, trunc('Album', album_chars))
+        main.addstr(y, name_start, trunc('Album', name_chars))
         main.addstr(y, artist_start, trunc('Artist', artist_chars))
-        main.addstr(y, song_count_start, trunc('Songs', count_chars))
+        main.addstr(y, song_count_start, trunc(' Songs', count_chars))
         y += 1
     for album in content['albums']:
         main.addstr(y, 0, str(i).zfill(2))
-        main.addstr(y, title_start, trunc(album['name'], album_chars))
+        main.addstr(y, name_start, trunc(album['name'], name_chars))
         main.addstr(y, artist_start, trunc(album['artist'], artist_chars))
         main.addstr(
-            y, song_count_start+song_offset, str(len(album['songs'])).zfill(2)
+            y, song_count_start + offset, str(len(album['songs'])).zfill(2)
         )
         y += 1
         i += 1
 
-
-def refresh():
-    [win.refresh() for win in (main, outbar, player, inbar)]
+    main.refresh()
 
 
 if __name__ == '__main__':
@@ -314,10 +296,11 @@ if __name__ == '__main__':
     player = crs.newwin(1, crs.COLS, crs.LINES-2, 0)  # For 'now playing'.
     outbar = crs.newwin(1, crs.COLS, crs.LINES-3, 0)  # For hints and notices.
     main.addstr(5, int(crs.COLS/2) - 9, 'Welcome to pmcli!')
-    outbar.addstr('Enter \'h\' or \'help\' if you need help.')
-    player.addstr('Logged in as ' + login())
-    refresh()
+    main.refresh()
+    addstr(outbar, 'Logging in...')
+    login(outbar)
+    addstr(player, 'Enter \'h\' or \'help\' if you need help.')
     content = None
-    playlist = []
+    playlist = Playlist()
     while True:
         content = transition(get_input(), content)
