@@ -26,7 +26,7 @@ class MusicObject(dict):
 
 class Artist(MusicObject):
     # Extra stuff: songs, albums.
-    def __init__(self, artist):
+    def __init__(self, artist, full=False):
         super().__init__(artist['artistId'], artist['name'], 'artist')
         self.__setitem__('id', artist['artistId'])
         self.__setitem__('name', artist['name'])
@@ -51,6 +51,14 @@ class Artist(MusicObject):
             ])
         except KeyError:
             self.__setitem__('albums', [])
+        # 'full' artists come from get_artist_info, they have lists of
+        # albums and songs.
+        self.__setitem__('full', full)  #
+
+    def fill(self):  # Add songs and albums.
+        if self['full']:
+            return
+        self = Artist(api.get_artist_info(self['id']), full=True)
 
     def play(self, win):
         MusicObject.play(
@@ -80,7 +88,7 @@ class Artist(MusicObject):
 
 class Album(MusicObject):
     # Extra stuff: artist, songs.
-    def __init__(self, album):
+    def __init__(self, album, full=False):
         super().__init__(album['albumId'], album['name'], 'album')
         self.__setitem__('artist', album['artist'])
         self.__setitem__('artist_ids', album['artistId'])
@@ -96,6 +104,14 @@ class Album(MusicObject):
             ])
         except KeyError:
             self.__setitem__('songs', [])
+        # 'full' albums come from api.get_album_info(),
+        # they have lists of songs.
+        self.__setitem__('full', full)
+
+    def fill(self):  # Get list of songs.
+        if self['full']:
+            return
+        self = Album(api.get_album_info(self['id']), full=True)
 
     def play(self, win):
         MusicObject.play(
@@ -123,12 +139,18 @@ class Album(MusicObject):
 
 class Song(MusicObject):
     # Extra stuff: artist, album.
-    def __init__(self, song):
+    def __init__(self, song, full=True):
         super().__init__(song['storeId'], song['title'], 'song')
         self.__setitem__('artist', song['artist'])
         self.__setitem__('artist_ids', song['artistId'])
         self.__setitem__('album', song['album'])
         self.__setitem__('album_id', song['albumId'])
+        # Search results come with all the info we need, so songs
+        # are 'full' by default.
+        self.__setitem__('full', full)
+
+    def fill(self):  # Songs are full by default.
+        return
 
     def play(self, win):
         MusicObject.play(win, [(self['id'], to_string(self))])

@@ -28,22 +28,21 @@ def leave(s):
 
 def measure_fields(width):
     index_chars = 3
-    count_chars = 7
-    name_chars = artist_chars = album_chars = int(
-        (width - index_chars - 2*count_chars)/3)
+    name_chars = artist_chars = album_chars = int((width - index_chars)/3)
 
-    total = sum(
-        [index_chars, 2*count_chars, name_chars, artist_chars, album_chars]
-    )
+    total = sum([index_chars, name_chars, artist_chars, album_chars])
     if total != width:
         name_chars += width - total
 
     name_start = 0 + index_chars
     artist_start = name_start + name_chars
     album_start = artist_start + artist_chars
-    album_count_start = album_start + album_chars
-    song_count_start = album_count_start + count_chars
-    offset = 3
-    return (index_chars, name_chars, artist_chars, album_chars, count_chars,
-            name_start, artist_start, album_start, song_count_start,
-            album_count_start, offset)
+    return (index_chars, name_chars, artist_chars, album_chars,
+            name_start, artist_start, album_start)
+
+
+def trunc(string, chars):
+    if chars < 0 or len(string) <= chars:
+        return string
+    else:
+        return string[:-((len(string) - chars) + 3)] + '...'
