@@ -19,7 +19,7 @@ def login(win):
         addstr(win, 'Config file is missing one or more fields: Exiting.')
         leave(2)
 
-    addstr(win, 'Logging in... Logged in as %s.' % user['email'])
+    addstr(win, 'Logged in as %s.' % user['email'])
 
 
 def read_config(win):  # reads the config file to get login info

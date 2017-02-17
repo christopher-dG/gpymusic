@@ -1,7 +1,10 @@
 import curses as crs
 from api import api, login
 from music_objects import Song, Artist, Album, Playlist
-from util import addstr, to_string, leave, measure_fields, trunc
+from util import (
+    addstr, to_string, leave, measure_fields, trunc, error_msg
+)
+from random import shuffle
 
 
 def display():  # Show a list of stuff on the main window.
@@ -10,7 +13,7 @@ def display():  # Show a list of stuff on the main window.
     (index_chars, name_chars, artist_chars, album_chars, name_start,
      artist_start, album_start) = measure_fields(main.getmaxyx()[1])
 
-    if 'songs' in content:
+    if 'songs' in content and content['songs']:
         main.addstr(y, 0, '#', crs.A_UNDERLINE)
         main.addstr(y, name_start, trunc('Title', name_chars),
                     crs.A_UNDERLINE)
@@ -27,7 +30,7 @@ def display():  # Show a list of stuff on the main window.
             y += 1
             i += 1
 
-    if 'artists' in content:
+    if 'artists' in content and content['artists']:
         main.addstr(y, 0, '#', crs.A_UNDERLINE)
         main.addstr(y, name_start, trunc('Artist', name_chars),
                     crs.A_UNDERLINE)
@@ -38,7 +41,7 @@ def display():  # Show a list of stuff on the main window.
             y += 1
             i += 1
 
-    if 'albums' in content:
+    if 'albums' in content and content['albums']:
         main.addstr(y, 0, '#', crs.A_UNDERLINE)
         main.addstr(y, name_start, trunc('Album', name_chars),
                     crs.A_UNDERLINE)
@@ -57,18 +60,21 @@ def display():  # Show a list of stuff on the main window.
 
 def get_input():
     addstr(inbar, '> ')
+    crs.curs_set(2)
     try:
         input = inbar.getstr()
     except KeyboardInterrupt:
         addstr(outbar, 'Goodbye, thanks for using pmcli!')
         leave(1)
     inbar.deleteln()
+    crs.curs_set(0)
     return input.decode('utf-8')
 
 
 def help(arg=0):
-    addstr(
-        main,
+    # Don't use generic addstr() because we don't want to call trunc() here.
+    main.erase()
+    main.addstr(
         """
         Commands:
         s/search search-term: Search for search-term
@@ -81,22 +87,18 @@ def help(arg=0):
         Ctrl-C: Exit pmcli
         """
     )
+    main.refresh()
 
 
 def search(query):
     global content
     if query is None:
-        invalid('Missing search query.')
+        error_msg(outbar, 'Missing search query.')
 
     # Fetch as many results as we can display.
     limit = int((main.getmaxyx()[0] - 3)/3)
     addstr(outbar, 'Searching for \'%s\'...' % query)
     result = api.search(query, max_results=limit)
-
-    # Creating MusicObjects is expensive, so only create as many as we need
-    # while still maintaining the desired number of search results.
-    # The smaller the terminal, the faster this goes. :^)
-    # Note: I am absolutely not going to remember how this works tomorrow.
 
     mapping = {
         'songs': {
@@ -133,70 +135,73 @@ def search(query):
     return content
 
 
-def get_option(num):
+def get_option(num, limit=-1):
     if num < 0 or num > sum([len(content[k]) for k in content.keys()]):
         return None
     i = 1
     for key in ('songs', 'artists', 'albums'):  # Hardcoded to guarantee order.
         for item in content[key]:
             if i == num:
-                return item.fill()
+                return item.fill(limit)
             else:
                 i += 1
     return None
 
 
-# Todo: Fix this.
 def expand(num=None):
     global content
     if num is None:
-        invalid('Missing argument to play.')
+        error_msg(outbar, 'Missing argument to play.')
     elif content is None:
-        invalid('Wrong context for expand.')
+        error_msg(outbar, 'Wrong context for expand.')
     else:
         try:
             num = int(num)
         except ValueError:
-            invalid('Invalid argument to play.')
+            error_msg(outbar, 'Invalid argument to play.')
         else:
-            opt = get_option(num)
+            limit = int((main.getmaxyx()[0] - 6)/3)
+            opt = get_option(num, limit)
             if opt is not None:
                 addstr(outbar, 'Loading \'%s\'...' % to_string(opt))
-                content = opt.collect(limit=int((main.getmaxyx()[0] - 6)/3))
+                content = opt.collect(limit=limit)
             else:
-                invalid('Invalid number. Valid between 1-%d' %
-                        sum([len(content[k]) for k in content.keys()]))
+                error_msg(outbar, 'Invalid number. Valid between 1-%d.' %
+                          sum([len(content[k]) for k in content.keys()]))
 
 
-def invalid(msg):
-    addstr(outbar, 'Error: ' + msg + ' Enter \'h\' or \'help\' for help.')
-
-
+# Todo: deal with properly displaying shuffled playlists.
 def play(arg=None):
     global content
     if arg is None or arg is 's':
         pl = playlist.collect()
         if pl is None:
-            invalid('The queue is empty.')
+            error_msg(outbar, 'The queue is empty.')
         else:
             content = pl
             display()
+            addstr(outbar, '[spc] pause [q] stop [n] next [9-0] volume')
             playlist.play(infobar, s=arg is 's')
+            outbar.erase()
+            outbar.refresh()
     elif content is None:
-        invalid('Wrong context for play.')
+        error_msg(outbar, 'Wrong context for play.')
     else:
         try:
             num = int(arg)
         except ValueError:
-            invalid('Invalid argument to play.')
+            error_msg(outbar, 'Invalid argument to play.')
         else:
             opt = get_option(num)
             if opt is not None:
+                addstr(outbar, '[spc] pause [q] stop [n] next [9-0] volume')
                 opt.play(infobar)
                 addstr(infobar, 'Now playing: None')
+                outbar.erase()
+                outbar.refresh()
             else:
-                invalid('Invalid number. Valid between 1-%d' %
-                        sum([len(content[k]) for k in content.keys()]))
+                error_msg(outbar, 'Invalid number. Valid between 1-%d' %
+                          sum([len(content[k]) for k in content.keys()]))
 
 
 def queue(num=None):
@@ -205,38 +210,41 @@ def queue(num=None):
     if num is None:
         pl = playlist.collect()
         if pl is None:
-            invalid('The queue is empty.')
+            error_msg(outbar, 'The queue is empty.')
         else:
             content = pl
     elif content is None:
-        invalid('Wrong context for queue.')
+        error_msg(outbar, 'Wrong context for queue.')
 
     else:
         try:
             num = int(num)
         except ValueError:
-            invalid('Invalid argument to queue.')
+            error_msg(outbar, 'Invalid argument to queue.')
         else:
             opt = get_option(num)
 
             if opt is not None:
                 if opt['kind'] == 'artist':
-                    invalid('Can only add songs or albums to the queue.')
+                    error_msg(
+                        outbar, 'Can only add songs or albums to the queue.')
                 elif opt['id'] in playlist.ids:
-                    invalid('\'%s\' is already in the queue.' % to_string(opt))
+                    error_msg(outbar, '\'%s\' is already in the queue.' %
+                              to_string(opt))
                 else:
                     if opt['kind'] == 'album':
-                        # Todo: Fix this
                         playlist.extend(Song(api.get_track_info(
-                            [song['id']] for song in opt['songs'])))
+                            song['id'])) for song in opt['songs'])
+                        playlist.ids.extend(
+                            song['id'] for song in opt['songs'])
                     else:
                         playlist.append(opt)
-                        playlist.ids.append(opt['id'])
-                        addstr(outbar, 'Added \'%s\' to queue.' %
-                               to_string(opt))
+                    playlist.ids.append(opt['id'])
+                    addstr(outbar, 'Added \'%s\' to queue.' %
+                           to_string(opt))
             else:
-                invalid('Invalid number. Valid between 1-%d' %
-                        sum([len(content[k]) for k in content.keys()]))
+                error_msg(outbar, 'Invalid number. Valid between 1-%d.' %
+                          sum([len(content[k]) for k in content.keys()]))
 
 
 def transition(input):
@@ -266,7 +274,7 @@ def transition(input):
         if content is not None:
             display()
     else:
-        invalid('Nonexistent command.')
+        error_msg(outbar, 'Nonexistent command.')
 
 
 if __name__ == '__main__':
@@ -277,6 +285,7 @@ if __name__ == '__main__':
     outbar = crs.newwin(1, crs.COLS, crs.LINES-3, 0)  # For hints and notices.
     main.addstr(5, int(crs.COLS/2) - 9, 'Welcome to pmcli!')
     main.refresh()
+    crs.curs_set(0)
     addstr(outbar, 'Logging in...')
     login(outbar)
     addstr(infobar, 'Enter \'h\' or \'help\' if you need help.')

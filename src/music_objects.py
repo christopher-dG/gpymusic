@@ -1,6 +1,6 @@
 from api import api
 from subprocess import call
-from util import to_string, addstr
+from util import to_string, addstr, time_from_ms
 from random import shuffle
 
 
@@ -12,15 +12,19 @@ class MusicObject(dict):
         self.__setitem__('kind', kind)
 
     @staticmethod
-    def play(win, items):
+    def play(win, songs):
+        # Iterable of items follows the format (id, song string, song length).
         path = '~/.config/pmcli/mpv_input.conf'
-        for i in range(len(items)):
-            url = api.get_stream_url(items[i][0])
-            addstr(win, 'Now playing: %s' % items[i][1])
+        i = 1
+        for song in songs:
+            url = api.get_stream_url(song[0])
+            addstr(win, 'Now playing: %s (%s)' %
+                   (song[1], song[2]))
             if call(
                     ['mpv', '--really-quiet', '--input-conf', path, url]
-            ) is 11:
-                return i + 1 if i < len(items) - 1 else None
+            ) is 11:  # 'q' returns this exit code.
+                return i if i < len(songs) else None
+            i += 1
         return None
 
 
@@ -37,6 +41,7 @@ class Artist(MusicObject):
                     'artist': song['artist'],
                     'album': song['album'],
                     'id': song['storeId'],
+                    'time': time_from_ms(int(song['durationMillis'])),
                     'kind': 'song'
                 } for song in artist['topTracks']
             ])
@@ -55,17 +60,19 @@ class Artist(MusicObject):
             self.__setitem__('albums', [])
         # 'full' artists come from get_artist_info, they have lists of
         # albums and songs.
-        self.__setitem__('full', full)  #
+        self.__setitem__('full', full)
 
-    def fill(self):  # Add songs and albums.
+    def fill(self, limit):  # Add songs and albums.
         if self['full']:
-            return
-        self = Artist(api.get_artist_info(self['id']), full=True)
+            return self
+        self = Artist(api.get_artist_info(
+            self['id'], max_top_tracks=limit), full=True)
         return self
 
     def play(self, win):
         MusicObject.play(
-            win, [(item['id'], to_string(item)) for item in self['songs']]
+            win, [(song['id'], to_string(song), song['time'])
+                  for song in self['songs']]
         )
 
     def collect(self, limit=20):
@@ -78,13 +85,18 @@ class Artist(MusicObject):
         songs = iter(self['songs'])
         albums = iter(self['albums'])
         for i in range(limit):
-            aggregate['songs'].append(
-                Song(api.get_track_info(next(songs))['id'])
-
-            )
-            aggregate['albums'].append(
-                Album(api.get_album_info(next(albums))['id'])
-            )
+            try:
+                aggregate['songs'].append(
+                    Song(api.get_track_info(next(songs)['id']))
+                )
+            except StopIteration:
+                pass
+            try:
+                aggregate['albums'].append(
+                    Album(api.get_album_info(next(albums)['id']))
+                )
+            except StopIteration:
+                pass
 
         return aggregate
 
@@ -103,6 +115,7 @@ class Album(MusicObject):
                     'artist_id': song['artistId'][0],
                     'album': song['album'],
                     'id': song['storeId'],
+                    'time': time_from_ms(int(song['durationMillis'])),
                     'kind': 'song'
                 } for song in album['tracks']
             ])
@@ -112,15 +125,16 @@ class Album(MusicObject):
         # they have lists of songs.
         self.__setitem__('full', full)
 
-    def fill(self):  # Get list of songs.
+    def fill(self, limit=0):  # Get list of songs.
         if self['full']:
-            return
+            return self
         self = Album(api.get_album_info(self['id']), full=True)
         return self
 
     def play(self, win):
         MusicObject.play(
-            win, [(item['id'], to_string(item)) for item in self['songs']]
+            win, [(song['id'], to_string(song), song['time'])
+                  for song in self['songs']]
         )
 
     def collect(self, limit=20):
@@ -134,10 +148,12 @@ class Album(MusicObject):
 
         songs = iter(self['songs'])
         for i in range(limit):
-            aggregate['songs'].append(
-                Song(api.get_track_info(next(songs))['id'])
-
-            )
+            try:
+                aggregate['songs'].append(
+                    Song(api.get_track_info(next(songs)['id']))
+                )
+            except StopIteration:
+                pass
 
         return aggregate
 
@@ -150,15 +166,16 @@ class Song(MusicObject):
         self.__setitem__('artist_ids', song['artistId'])
         self.__setitem__('album', song['album'])
         self.__setitem__('album_id', song['albumId'])
+        self.__setitem__('time', time_from_ms(int(song['durationMillis'])))
         # Search results come with all the info we need, so songs
         # are 'full' by default.
         self.__setitem__('full', full)
 
-    def fill(self):  # Songs are full by default.
+    def fill(self, limit=0):  # Songs are full by default.
         return self
 
     def play(self, win):
-        MusicObject.play(win, [(self['id'], to_string(self))])
+        MusicObject.play(win, [(self['id'], to_string(self), self['time'])])
 
     def collect(self, limit=None):
         return {
@@ -179,17 +196,17 @@ class Playlist(list):
         if not self.collect()['songs']:
             return None
 
-        items = [(item['id'], to_string(item)) for item in self]
+        songs = [(song['id'], to_string(song), song['time']) for song in self]
         if s:
-            shuffle(items)
+            shuffle(songs)
 
         # Save the queue contents to restore unplayed items.
         cache = []
-        for i in range(len(items)):
+        for i in range(len(songs)):
             cache.append(self.pop(0))
         del self.ids[:]
 
-        index = MusicObject.play(win, items)
+        index = MusicObject.play(win, songs)
         addstr(win, 'Now playing: None')
 
         # I'll figure out how to make this work with shuffle later.
