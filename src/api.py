@@ -3,7 +3,7 @@ from gmusicapi import Mobileclient
 from os.path import expanduser, isfile, join
 from util import addstr, leave
 
-api = Mobileclient()  # our interface to google music
+api = Mobileclient()  # Our interface to Google Music.
 
 
 def login(win):
@@ -13,19 +13,19 @@ def login(win):
     Arguments:
     win: Window on which to display output.
     """
-    user = read_config(win)
+    user = read_config(win)  # Login information.
 
     try:
         if not api.login(
                 user['email'], user['password'], user['deviceid']
-        ):
+        ):  # Login failed;
             addstr(win, 'Login failed: Exiting.')
             leave(2)
-    except KeyError:
+    except KeyError:  # Invalid config file.
         addstr(win, 'Config file is missing one or more fields: Exiting.')
         leave(2)
 
-    addstr(win, 'Logged in as %s.' % user['email'])
+    addstr(win, 'Logged in as %s.' % user['email'])  # Login succeeded.
 
 
 def read_config(win):
@@ -40,19 +40,19 @@ def read_config(win):
     Returns: A dict containing keys 'email', 'password', and 'deviceid'.
     """
     parser = ConfigParser()
-    p = join(
-        expanduser('~'), '.config', 'pmcli', 'config'
-    )
-    if not isfile(p):
-        addstr(win, 'Config file not found at %s: Exiting.' % p)
+    config = join(expanduser('~'), '.config', 'pmcli', 'config')
+
+    if not isfile(config):
+        addstr(win, 'Config file not found at %s: Exiting.' % config)
         leave(2)
 
-    parser.read(p)
+    parser.read(config)
     user_info = {}
+
     try:
-        for key in parser['auth']:
+        for key in parser['auth']:  # Read login information.
             user_info[key] = parser['auth'][key]
-    except KeyError:
+    except KeyError:  # Invalid config file.
         addstr(win, 'Config file is missing [auth] section: Exiting.')
         leave(2)
 
