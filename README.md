@@ -39,7 +39,7 @@ Note: Please, for your own sake, don't resize your terminal while the program is
 
 ## Controls
 
-- `s/search search-term`: Search for 'search-term'`
+- `s/search search-term`: Search for 'search-term'
 - `e/expand 123`: Expand item number 123
 - `p/play`: Play current queue
 - `p/play s`: Shuffle and play current queue
@@ -64,6 +64,10 @@ When playing music:
 Colour themes are defined in the `[colour]` section of your config file. To enable colour, make sure `enable` is set to `yes` and set the fields to hex colours as desired. `highlight` affects the section headers and 'now playing' output, `content{1|2}` affect the main window, and `background` and `foreground` are self-explanatory.
 
 Note: Upon exiting the program, your terminal colours will likely be modified. Just open a new terminal session and your colours will be back to normal.
+
+## 2-Factor Authentication
+
+If your account has 2FA set up, you will need to use an [app password](https://support.google.com/accounts/answer/185833?hl=en) to log in. Replace the `password` field in your config file with the app password.
 
 ### Disclaimer
 expect bugs, and please report them! I hope you enjoy using pmcli, and if you don't, that's okay too because I enjoy working on it.
