@@ -27,21 +27,24 @@ ln -s ~/.local/share/pmcli/src/pmcli.py /usr/local/bin/pmcli
 
 ## Device ID
 
-If you don't know your device ID, run `python script/get_dev_id.py` and answer the prompts to generate a list of valid device IDs.
+If you don't know your device ID, run `python get_dev_id.py` and answer the prompts to generate a list of valid device IDs.
 
 ## Running pmcli
 
 Once installed, the program can be run with `pmcli`.
+
+Note: Please, for your own sake, don't resize your terminal while the program is running.
 
 ## Controls
 
 - `s/search search-term`: Search for 'search-term'`
 - `e/expand 123`: Expand item number 123
 - `p/play`: Play current queue
--  `p/play s`: Shuffle and play current queue
+- `p/play s`: Shuffle and play current queue
 - `p/play 123`: Play item number 123
 - `q/queue`: Show current queue
 - `q/queue 123`:  Add item number 123 to queue
+- `q/queue c`:  Clear current queue
 - `w/write file-name`: Write current queue to file file-name
 - `r/restore file-name`: Replace current queue with playlist from file-name
 - `h/help`: Show help message
@@ -56,11 +59,9 @@ When playing music:
 
 ### Todo
 
-- list playlists command
-- Properly display shuffled queue
-- Restore queue from shuffle
-- Seek backwards function
 - Colour support
-- Text-only debugging UI
+- Seek backwards function
 - Add threading support (play in background and keep browsing)
 - Caching queue contents for seamless transitions (save locally and delete after? Probably needs threading)
+
+Disclaimer: expect bugs, and please report them! I hope you enjoy using pmcli, and if you don't, that's okay too because I enjoy working on it.
