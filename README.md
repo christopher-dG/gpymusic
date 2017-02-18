@@ -18,19 +18,23 @@ cd pmcli
 Now, edit `config` with your Google account information. Next:
 
 ```sh
+mkdir -p ~/.config/pmcli ~/.local/share/pmcli/playlists
 cp config mpv_input.conf ~/.config/pmcli
-cp src ~/.local/share/pmcli
+cp -r src ~/.local/share/pmcli
 chmod +x ~/.local/share/pmcli/src/pmcli.py
-ln -s /usr/local/bin/pmcli ~/.local/share/pmcli/pmcli.py
+ln -s ~/.local/share/pmcli/src/pmcli.py /usr/local/bin/pmcli
 ```
 
 ## Device ID
+
 If you don't know your device ID, run `python script/get_dev_id.py` and answer the prompts to generate a list of valid device IDs.
 
 ## Running pmcli
+
 Once installed, the program can be run with `pmcli`.
 
 ## Controls
+
 - `s/search search-term`: Search for 'search-term'`
 - `e/expand 123`: Expand item number 123
 - `p/play`: Play current queue
@@ -44,12 +48,15 @@ Once installed, the program can be run with `pmcli`.
 - `Ctrl-C`: Exit pmcli
 
 When playing music:
+
 - `spc`: Play/pause
 - `9/0`: Volume down/up (Note: volume changes do not persist across songs, so I recommend you adjust your system volume instead)
 - `n`: Next track
 - `q`: Stop
 
-## Todo
+### Todo
+
+- list playlists command
 - Properly display shuffled queue
 - Restore queue from shuffle
 - Seek backwards function
