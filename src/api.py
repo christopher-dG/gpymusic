@@ -7,6 +7,12 @@ api = Mobileclient()  # our interface to google music
 
 
 def login(win):
+    """
+    Log in to Google Play Music.
+
+    Arguments:
+    win: Window on which to display output.
+    """
     user = read_config(win)
 
     try:
@@ -22,7 +28,17 @@ def login(win):
     addstr(win, 'Logged in as %s.' % user['email'])
 
 
-def read_config(win):  # reads the config file to get login info
+def read_config(win):
+    """
+    Parses a config file for login information.
+      Config file should be located at '~/.config/pmcli/config'
+      with a section called [auth] containing email, password, and deviceid.
+
+    Arguments:
+    win: Window on which to display output.
+
+    Returns: A dict containing keys 'email', 'password', and 'deviceid'.
+    """
     parser = ConfigParser()
     p = join(
         expanduser('~'), '.config', 'pmcli', 'config'

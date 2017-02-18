@@ -5,15 +5,37 @@ from random import shuffle
 
 
 class MusicObject(dict):
-    # Every MusicObject should at least have a name, id, and kind.
-    def __init__(self, id, name, kind):
+    """A dict representing a song, artist, or album."""
+    def __init__(self, id, name, kind, full):
+        """
+        MusicObject contstructor.
+
+        Arguments:
+        id: Unique item id as determined by gmusicapi.
+        name: Title of song/album or name of artist.
+        kind: Type of object: song, artist, or album.
+        full: Whether or not the item contains all possible information.
+          MusicObjects generated from search() results are not full,
+          MusicObjects generated from get_{track|artist|album_info}() are full.
+        """
         self.__setitem__('id', id)
         self.__setitem__('name', name)
         self.__setitem__('kind', kind)
+        self.__setitem__('full', full)
 
     @staticmethod
     def play(win, songs):
-        # Iterable of items follows the format (id, song string, song length).
+        """
+        Play some songs.
+
+        Arguments:
+        win: Window on which to display song information.
+        songs: List of songs to play. Songs are tuples following the
+          format (song_string, song_id, song_length).
+
+        Returns: None if all items were played, or the index of the
+          first unplayed item to be used in restoring the queue.
+        """
         path = '~/.config/pmcli/mpv_input.conf'
         i = 1
         for song in songs:
@@ -29,9 +51,18 @@ class MusicObject(dict):
 
 
 class Artist(MusicObject):
-    # Extra stuff: songs, albums.
+    """A dict representing an artist."""
     def __init__(self, artist, full=False):
-        super().__init__(artist['artistId'], artist['name'], 'artist')
+        """
+        Artist constructor.
+
+        Arguments:
+        artist: Dict with artist information from gmusicapi.
+
+        Keyword arguments:
+        full=False: Whether or not the artist's song list is populated.
+        """
+        super().__init__(artist['artistId'], artist['name'], 'artist', full)
         self.__setitem__('id', artist['artistId'])
         self.__setitem__('name', artist['name'])
         try:
@@ -58,11 +89,16 @@ class Artist(MusicObject):
             ])
         except KeyError:
             self.__setitem__('albums', [])
-        # 'full' artists come from get_artist_info, they have lists of
-        # albums and songs.
-        self.__setitem__('full', full)
 
-    def fill(self, limit):  # Add songs and albums.
+    def fill(self, limit):
+        """
+        If an Artist is not full, fill in its song list.
+
+        Arguments:
+        limit: The number of songs to generate, determined by terminal height.
+
+        Returns: A new, full, Artist
+        """
         if self['full']:
             return self
         self = Artist(api.get_artist_info(
@@ -70,12 +106,27 @@ class Artist(MusicObject):
         return self
 
     def play(self, win):
+        """
+        Play an Artist's song list.
+
+        Arguments:
+        win: Window on which to display song information.
+        """
         MusicObject.play(
             win, [(song['id'], to_string(song), song['time'])
                   for song in self['songs']]
         )
 
     def collect(self, limit=20):
+        """
+        Collect all of an Artist's information: songs, artist, and albums.
+
+        Keyword arguments:
+        limit=20: Upper limit of each element to collect,
+          determined by terminal height.
+
+        Returns: A dict of lists with keys 'songs, 'artists', and 'albums'.
+        """
         aggregate = {
             'songs': [],
             'artists': [self],
@@ -102,9 +153,18 @@ class Artist(MusicObject):
 
 
 class Album(MusicObject):
-    # Extra stuff: artist, songs.
+    """A dict representing an album."""
     def __init__(self, album, full=False):
-        super().__init__(album['albumId'], album['name'], 'album')
+        """
+        Album constructor.
+
+        Arguments:
+        artist: Dict with album information from gmusicapi.
+
+        Keyword arguments:
+        full=False: Whether or not the album's song list is populated.
+        """
+        super().__init__(album['albumId'], album['name'], 'album', full)
         self.__setitem__('artist', album['artist'])
         self.__setitem__('artist_ids', album['artistId'])
         try:
@@ -121,23 +181,43 @@ class Album(MusicObject):
             ])
         except KeyError:
             self.__setitem__('songs', [])
-        # 'full' albums come from api.get_album_info(),
-        # they have lists of songs.
-        self.__setitem__('full', full)
 
-    def fill(self, limit=0):  # Get list of songs.
+    def fill(self, limit=0):
+        """
+        If an Album is not full, fill in its song list.
+
+        Arguments:
+        limit: Irrelevant, we always generate all songs.
+
+        Returns: A new, full, Album
+        """
         if self['full']:
             return self
         self = Album(api.get_album_info(self['id']), full=True)
         return self
 
     def play(self, win):
+        """
+        Play an Album's song list.
+
+        Arguments:
+        win: Window on which to display song information.
+        """
         MusicObject.play(
             win, [(song['id'], to_string(song), song['time'])
                   for song in self['songs']]
         )
 
     def collect(self, limit=20):
+        """
+        Collect all of an Album's information: songs, artist, and albums.
+
+        Keyword arguments:
+        limit=20: Upper limit of each element to collect,
+          determined by terminal height.
+
+        Returns: A dict of lists with keys 'songs, 'artists', and 'albums'.
+        """
         aggregate = {
             'songs': [],
             'artists': [
@@ -159,25 +239,46 @@ class Album(MusicObject):
 
 
 class Song(MusicObject):
-    # Extra stuff: artist, album.
+    """A dict representing a song."""
     def __init__(self, song, full=True):
-        super().__init__(song['storeId'], song['title'], 'song')
+        """
+        Song constructor.
+
+        Arguments:
+        song: Dict with song information from gmusicapi.
+
+        Keyword arguments:
+        full=True: A song is always considered full.
+        """
+        super().__init__(song['storeId'], song['title'], 'song', full)
         self.__setitem__('artist', song['artist'])
         self.__setitem__('artist_ids', song['artistId'])
         self.__setitem__('album', song['album'])
         self.__setitem__('album_id', song['albumId'])
         self.__setitem__('time', time_from_ms(int(song['durationMillis'])))
-        # Search results come with all the info we need, so songs
-        # are 'full' by default.
-        self.__setitem__('full', full)
 
-    def fill(self, limit=0):  # Songs are full by default.
+    def fill(self, limit=0):
+        """All songs are already full."""
         return self
 
     def play(self, win):
+        """
+        Play an Song.
+
+        Arguments:
+        win: Window on which to display song information.
+        """
         MusicObject.play(win, [(self['id'], to_string(self), self['time'])])
 
     def collect(self, limit=None):
+        """
+        Collect all of a Song's information: songs, artist, and albums.
+
+        Keyword arguments:
+        limit=None: Irrelevant.
+
+        Returns: A dict of lists with keys 'songs, 'artists', and 'albums'.
+        """
         return {
             'songs': [self],
             'artists': [
@@ -188,11 +289,22 @@ class Song(MusicObject):
 
 
 class Playlist(list):
+    """A queue of songs to be played."""
     def __init__(self):
+        """Playlist constructor."""
         super().__init__(self)
         self.ids = []
 
     def play(self, win, s=False):
+        """
+        Play a playlist.
+
+        Arguments:
+        win: Window on which to display song information.
+        s=False: Whether or not the playlist is shuffled.
+
+        Returns: None if the playlist is empty.
+        """
         if not self.collect()['songs']:
             return None
 
@@ -210,13 +322,20 @@ class Playlist(list):
         addstr(win, 'Now playing: None')
 
         # I'll figure out how to make this work with shuffle later.
-        if not s:
-            if index is not None:
-                for item in cache[index:]:
-                    self.append(item)
-                    self.ids.append(item['id'])
+        if not s and index is not None:
+            for item in cache[index:]:
+                self.append(item)
+                self.ids.append(item['id'])
 
     def collect(self, s=False):
+        """
+        Collect all of a Playlist's information: songs, artist, and albums.
+
+        Keyword arguments:
+        s=False: Whether or not the playlist is shuffled..
+
+        Returns: A dict with key 'songs'.
+        """
         songs = {'songs': [item for item in self]} if len(self) > 0 else None
         if s and songs is not None:
             shuffle(songs['songs'])

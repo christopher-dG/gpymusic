@@ -2,15 +2,29 @@ from curses import endwin
 from time import sleep
 
 
-def addstr(win, str):
-    # Replace the contents of a window with a new string.
-    # Not for anything where position matters.
+def addstr(win, string):
+    """
+    Replace the contents of a window with a new string.
+      Not for anything where position matters.
+
+    Arguments:
+    win: Window on which to display the string.
+    string: String to be displayed.
+    """
     win.erase()
-    win.addstr(trunc(str, win.getmaxyx()[1]))
+    win.addstr(trunc(string, win.getmaxyx()[1]))
     win.refresh()
 
 
 def to_string(item):
+    """
+    Formats a MusicObject's information into a string.
+
+    Arguments:
+    item: MusicObject to be formatted.
+
+    Returns: Formatted string.
+    """
     if item['kind'] == 'song':
         return ' - '.join((item['name'], item['artist']))
     if item['kind'] == 'artist':
@@ -21,12 +35,26 @@ def to_string(item):
 
 
 def leave(s):
+    """
+    Exit gracefully.
+
+    Arguments:
+    s: Quit after s seconds.
+    """
     sleep(s)
     endwin()
     quit()
 
 
 def measure_fields(width):
+    """
+    Determine max number of  characters and starting point for category fields.
+
+    Arguments:
+    width: Width of the window being divided.
+
+    Returns: A tuple containing character allocations and start positions.
+    """
     padding = 1
     index_chars = 3
     name_chars = artist_chars = album_chars = int((width - index_chars -
@@ -46,6 +74,16 @@ def measure_fields(width):
 
 
 def trunc(string, chars):
+    """
+    Pads a string with '...' if it is too long to fit in a window.
+
+    Arguments:
+    string: String to be truncated.
+    chars: Max length for the string.
+
+    Returns: The original string if it is short enough to be displayed,
+      otherwise the string truncated and padded with '...'.
+    """
     if chars < 0 or len(string) <= chars:
         return string
     else:
@@ -53,10 +91,25 @@ def trunc(string, chars):
 
 
 def time_from_ms(ms):
+    """
+    Converts milliseconds into mm:ss formatted string.
+
+    Arguments:
+    ms: Number of milliseconds.
+
+    Returns: ms in mm:ss.
+    """
     minutes = str(ms // 60000).zfill(2)
     seconds = str(ms // 1000 % 60).zfill(2)
     return "%s:%s" % (minutes, seconds)
 
 
-def error_msg(bar, msg):
-    addstr(bar, 'Error: ' + msg + ' Enter \'h\' or \'help\' for help.')
+def error_msg(win, msg):
+    """
+    Displays an error message.
+
+    Arguments:
+    win: Window on which to display the message.
+    msg: Message to be displayed.
+    """
+    addstr(win, 'Error: ' + msg + ' Enter \'h\' or \'help\' for help.')
