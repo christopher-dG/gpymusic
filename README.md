@@ -1,13 +1,6 @@
 # pmcli - (p)lay (m)usic for (cli)
 
-<<<<<<< HEAD
-## Note: pmcli is currently being rewritten in [develop](https://github.com/christopher-dg/pmcli/tree/develop) with tons of improvements!
-
-### Dependencies 
-pmcli depends on Python 3, `mpv`, and `gmusicapi`.
-=======
 Browse and stream Google Play Music from the command line
->>>>>>> develop
 
 ## Dependencies
 
