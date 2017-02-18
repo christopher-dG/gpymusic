@@ -4,7 +4,7 @@ Browse and stream Google Play Music from the command line
 
 ## Dependencies
 
-- [Python 3](https://www.python.org/downloads/)
+- [Python 3](https://python.org/downloads/)
 - [mpv](https://mpv.io)
 - [gmusicapi](https://github.com/simon-weber/gmusicapi): `pip install gmusicapi`
 
