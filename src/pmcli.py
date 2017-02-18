@@ -1,4 +1,7 @@
+#!/usr/bin/env python3
+
 import curses as crs
+from os.path import exists, expanduser, join
 from api import api, login
 from music_objects import Song, Artist, Album, Playlist
 from util import (
@@ -51,9 +54,12 @@ def help(arg=0):
         s/search search-term: Search for search-term
         e/expand 123: Expand item number 123
         p/play: Play current queue
+        p/play s: Shuffle and play current queue
         p/play 123: Play item number 123
         q/queue: Show current queue
         q/queue 123:  Add item number 123 to queue
+        w/write file-name: Write current queue to file file-name
+        r/restore file-name: Replace current queue with playlist from file-name
         h/help: Show this help message
         Ctrl-C: Exit pmcli
         """
@@ -61,7 +67,6 @@ def help(arg=0):
     main.refresh()
 
 
-# Todo: deal with properly displaying shuffled playlists.
 def play(arg=None):
     """
     Play a MusicObject or the current queue.
@@ -152,9 +157,42 @@ def queue(num=None):
                           sum([len(content[k]) for k in content.keys()]))
 
 
+def restore(fn=None):
+    """
+    Restore playlist from a file.
+
+    Keyword arguments:
+    fn: Name of the file containing the playlist.
+      File should be at ~/.local/share/pmcli/playlists/.
+    """
+    if fn is None:
+        error_msg(outbar, 'Missing argument to restore.')
+        return
+    path = join(expanduser('~'), '.local', 'share', 'pmcli', 'playlists', fn)
+    if not exists(path):
+        error_msg(outbar, '%s does not exist.' % fn)
+        return
+    songs = []
+    ids = open(path).read().strip('\n').split('\n')
+    addstr(outbar, 'Restoring queue from %s...' % fn)
+    for id in ids:
+        try:
+            songs.append(Song(api.get_track_info(id)))
+        except:
+            error_msg(outbar, '%s is not a valid playlist file.'
+                      % fn)
+            return
+    del playlist[:]
+    del playlist.ids[:]
+    for song in songs:
+        playlist.append(song)
+        playlist.ids.append(song['id'])
+    addstr(outbar, 'Restored queue from %s.' % fn)
+
+
 def search(query):
     """
-    Search Google Play Music for a given query .
+    Search Google Play Music for a given query.
 
     Arguments:
     query: The search query.
@@ -205,6 +243,28 @@ def search(query):
                 pass
 
     return content
+
+
+def write(fn):
+    """
+    Write the current queue to a file.
+
+    Arguments:
+    fn: File to be written to.
+      File is stored at ~/.local/share/pmcli/playlists/.
+    """
+    pl = playlist.collect()
+    if pl is None:
+        error_msg(outbar, 'Playlist is empty.')
+        return
+    path = join(expanduser('~'), '.local', 'share', 'pmcli', 'playlists')
+    if not exists(path):
+        error_msg(outbar, 'Path to playlists does not exist.')
+        return
+    with open(join(path, fn), 'a') as f:
+        for song in playlist:
+            f.write('%s\n' % song['id'])
+    addstr(outbar, 'Wrote queue to %s.' % fn)
 
 
 def display():
@@ -315,7 +375,11 @@ def transition(input):
         'p': play,
         'play': play,
         'q': queue,
-        'queue': queue
+        'queue': queue,
+        'w': write,
+        'write': write,
+        'r': restore,
+        'restore': restore,
     }
 
     arg = None
