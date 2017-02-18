@@ -1,6 +1,5 @@
-from api import api
 from subprocess import call
-from util import to_string, addstr, time_from_ms
+from util import to_string, addstr, time_from_ms, api
 from random import shuffle
 
 

@@ -2,6 +2,8 @@
 
 Browse and stream Google Play Music from the command line
 
+![screencast]( https://zippy.gfycat.com/SnivelingLavishAtlanticblackgoby.gif "gfy")
+
 ## Dependencies
 
 - [Python 3](https://python.org/downloads/)
@@ -15,7 +17,7 @@ git clone https://github.com/christopher-dG/pmcli
 cd pmcli
 ```
 
-Now, edit `config` with your Google account information. Next:
+Now, edit the `[auth]` section of `config` with your Google account information. Next:
 
 ```sh
 mkdir -p ~/.config/pmcli ~/.local/share/pmcli/playlists
@@ -57,11 +59,11 @@ When playing music:
 - `n`: Next track
 - `q`: Stop
 
-### Todo
+## Colours
 
-- Colour support
-- Seek backwards function
-- Add threading support (play in background and keep browsing)
-- Caching queue contents for seamless transitions (save locally and delete after? Probably needs threading)
+Colour themes are defined in the `[colour]` section of your config file. To enable colour, make sure `enable` is set to `yes` and set the fields to hex colours as desired. `highlight` affects the section headers and 'now playing' output, `content{1|2}` affect the main window, and `background` and `foreground` are self-explanatory.
 
-Disclaimer: expect bugs, and please report them! I hope you enjoy using pmcli, and if you don't, that's okay too because I enjoy working on it.
+Note: Upon exiting the program, your terminal colours will likely be modified. Just open a new terminal session and your colours will be back to normal.
+
+### Disclaimer
+expect bugs, and please report them! I hope you enjoy using pmcli, and if you don't, that's okay too because I enjoy working on it.

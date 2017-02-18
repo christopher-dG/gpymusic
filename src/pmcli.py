@@ -2,10 +2,9 @@
 
 import curses as crs
 from os.path import exists, expanduser, join, isfile
-from api import api, login
 from music_objects import Song, Artist, Album, Queue
 from util import (
-    addstr, to_string, leave, measure_fields, trunc, error_msg
+    addstr, to_string, leave, measure_fields, trunc, error_msg, initialize, api
 )
 
 
@@ -103,47 +102,68 @@ def display():
      artist_start, album_start) = measure_fields(main.getmaxyx()[1])
 
     if 'songs' in content and content['songs']:  # Write songs header.
-        main.addstr(y, 0, '#', crs.A_UNDERLINE)
+        main.addstr(y, 0, '#', crs.color_pair(2)
+                    if colour else crs.A_UNDERLINE)
         main.addstr(y, name_start, trunc('Title', name_chars),
-                    crs.A_UNDERLINE)
+                    crs.color_pair(2) if colour else crs.A_UNDERLINE)
         main.addstr(y, artist_start, trunc('Artist', artist_chars),
-                    crs.A_UNDERLINE)
+                    crs.color_pair(2) if colour else crs.A_UNDERLINE)
         main.addstr(y, album_start, trunc('Album', album_chars),
-                    crs.A_UNDERLINE)
+                    crs.color_pair(2) if colour else crs.A_UNDERLINE)
         y += 1
 
         for song in content['songs']:  # Write each song.
-            main.addstr(y, 0, str(i).zfill(2))
-            main.addstr(y, name_start, trunc(song['name'], name_chars))
-            main.addstr(y, artist_start, trunc(song['artist'], artist_chars))
-            main.addstr(y, album_start, trunc(song['album'], album_chars))
+            main.addstr(y, 0, str(i).zfill(2),
+                        crs.color_pair(3 if y % 2 == 0 else 4)
+                        if colour else 0)
+            main.addstr(y, name_start, trunc(song['name'], name_chars),
+                        crs.color_pair(3 if y % 2 == 0 else 4)
+                        if colour else 0)
+            main.addstr(y, artist_start, trunc(song['artist'], artist_chars),
+                        crs.color_pair(3 if y % 2 == 0 else 4)
+                        if colour else 0)
+            main.addstr(y, album_start, trunc(song['album'], album_chars),
+                        crs.color_pair(3 if y % 2 == 0 else 4)
+                        if colour else 0)
             y += 1
             i += 1
 
     if 'artists' in content and content['artists']:  # Write artists header.
-        main.addstr(y, 0, '#', crs.A_UNDERLINE)
+        main.addstr(y, 0, '#', crs.color_pair(2)
+                    if colour else crs.A_UNDERLINE)
         main.addstr(y, name_start, trunc('Artist', name_chars),
-                    crs.A_UNDERLINE)
+                    crs.color_pair(2) if colour else crs.A_UNDERLINE)
         y += 1
 
         for artist in content['artists']:  # Write each artist.
-            main.addstr(y, 0, str(i).zfill(2))
-            main.addstr(y, name_start, trunc(artist['name'], name_chars))
+            main.addstr(y, 0, str(i).zfill(2),
+                        crs.color_pair(3 if y % 2 == 0 else 4)
+                        if colour else 0)
+            main.addstr(y, name_start, trunc(artist['name'], name_chars),
+                        crs.color_pair(3 if y % 2 == 0 else 4)
+                        if colour else 0)
             y += 1
             i += 1
 
     if 'albums' in content and content['albums']:  # Write albums header.
-        main.addstr(y, 0, '#', crs.A_UNDERLINE)
+        main.addstr(y, 0, '#', crs.color_pair(2)
+                    if colour else crs.A_UNDERLINE)
         main.addstr(y, name_start, trunc('Album', name_chars),
-                    crs.A_UNDERLINE)
+                    crs.color_pair(2) if colour else crs.A_UNDERLINE)
         main.addstr(y, artist_start, trunc('Artist', artist_chars),
-                    crs.A_UNDERLINE)
+                    crs.color_pair(2) if colour else crs.A_UNDERLINE)
         y += 1
 
         for album in content['albums']:  # Write each album.
-            main.addstr(y, 0, str(i).zfill(2))
-            main.addstr(y, name_start, trunc(album['name'], name_chars))
-            main.addstr(y, artist_start, trunc(album['artist'], artist_chars))
+            main.addstr(y, 0, str(i).zfill(2),
+                        crs.color_pair(3 if y % 2 == 0 else 4)
+                        if colour else 0)
+            main.addstr(y, name_start, trunc(album['name'], name_chars),
+                        crs.color_pair(3 if y % 2 == 0 else 4)
+                        if colour else 0)
+            main.addstr(y, artist_start, trunc(album['artist'], artist_chars),
+                        crs.color_pair(3 if y % 2 == 0 else 4)
+                        if colour else 0)
             y += 1
             i += 1
 
@@ -435,16 +455,7 @@ def write(fn):
 
 
 if __name__ == '__main__':
-    main = crs.initscr()  # For the bulk of output.
-    main.resize(crs.LINES-3, crs.COLS)
-    inbar = crs.newwin(1, crs.COLS, crs.LINES-1, 0)  # For user input.
-    infobar = crs.newwin(1, crs.COLS, crs.LINES-2, 0)  # For 'now playing'.
-    outbar = crs.newwin(1, crs.COLS, crs.LINES-3, 0)  # For hints and notices.
-    main.addstr(5, int(crs.COLS/2) - 9, 'Welcome to pmcli!')
-    main.refresh()
-    crs.curs_set(0)  # Hide the cursor.
-    addstr(outbar, 'Logging in...')
-    login(outbar)
+    colour, main, inbar, infobar, outbar = initialize()
     addstr(infobar, 'Enter \'h\' or \'help\' if you need help.')
     queue = Queue()
     global content
