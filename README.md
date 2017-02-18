@@ -1,59 +1,73 @@
-# pmcli – (p)lay (m)usic for (cli)
-Browse and stream Google Play Music from a Linux terminal, thanks to [gmusicapi](https://github.com/simon-weber/gmusicapi)
+# pmcli - (p)lay (m)usic for (cli)
 
+<<<<<<< HEAD
 ## Note: pmcli is currently being rewritten in [develop](https://github.com/christopher-dg/pmcli/tree/develop) with tons of improvements!
 
 ### Dependencies 
 pmcli depends on Python 3, `mpv`, and `gmusicapi`.
+=======
+Browse and stream Google Play Music from the command line
+>>>>>>> develop
 
-### Setup
-- `git clone https://github.com/christopher-dG/pmcli`
-- `cd pmcli`
-- `mkdir -p ~/.config/pmcli`
-- `cp config mpv_input.conf ~/.config/pmcli`
+## Dependencies
 
-If you just want to run the program locally, you can stop here. If you wish to install:
-- `cp -r pmcli /etc/`
-- `chmod +x /etc/pmcli/pmcli.py`
-- `ln -s /etc/pmcli/pmcli.py /usr/local/bin/pmcli`
+- [Python 3](https://www.python.org/downloads/)
+- [mpv](mpv.io)
+- [gmusicapi](https://github.com/simon-weber/gmusicapi): `pip install gmusicapi`
 
-Don't forget to manually edit your config file in `~/.config/pmcli`!
+## Installation
 
-### Getting your device ID
-To find a valid device ID, configure email and password in `config`, and then run `python get_dev_id.py` to print out a list of IDs for you to try.
+```sh
+git clone https://github.com/christopher-dG/pmcli
+cd pmcli
+```
 
-### Running `pmcli`
-Running locally: 
-- `cd pmcli/pmcli`
-- `python pmcli.py`
+Now, edit `config` with your Google account information. Next:
 
-Installed:
-- `pmcli`
+```sh
+mkdir -p ~/.config/pmcli ~/.local/share/pmcli/playlists
+cp config mpv_input.conf ~/.config/pmcli
+cp -r src ~/.local/share/pmcli
+chmod +x ~/.local/share/pmcli/src/pmcli.py
+ln -s ~/.local/share/pmcli/src/pmcli.py /usr/local/bin/pmcli
+```
 
-Note: If your python 3 binary is not located at `/usr/bin/python`, you will need to edit the first line of `pmcli.py`. 
+## Device ID
 
-### Controls
-- `h/help`: print help
-- `s/search` query: search for query
-- `i/info` 123: expand item number 123
-- `p/play` 123: play item number 123
-- `q/quit`: exit pmcli
+If you don't know your device ID, run `python script/get_dev_id.py` and answer the prompts to generate a list of valid device IDs.
+
+## Running pmcli
+
+Once installed, the program can be run with `pmcli`.
+
+## Controls
+
+- `s/search search-term`: Search for 'search-term'`
+- `e/expand 123`: Expand item number 123
+- `p/play`: Play current queue
+-  `p/play s`: Shuffle and play current queue
+- `p/play 123`: Play item number 123
+- `q/queue`: Show current queue
+- `q/queue 123`:  Add item number 123 to queue
+- `w/write file-name`: Write current queue to file file-name
+- `r/restore file-name`: Replace current queue with playlist from file-name
+- `h/help`: Show help message
+- `Ctrl-C`: Exit pmcli
 
 When playing music:
 
-- `9/0`: volume down/up
-- `spc`: play/pause
-- `n`: next track
-- `q`: stop
+- `spc`: Play/pause
+- `9/0`: Volume down/up (Note: volume changes do not persist across songs, so I recommend you adjust your system volume instead)
+- `n`: Next track
+- `q`: Stop
 
-### Todo, when I have time and motivation (not ordered by priority):
-- seek backwards function
-- playlist support
-- a pretty-looking ncurses UI, colour themes
-- option to go back to previous state
-- shuffle functionality
-- more specific search (artists only, etc.)
-- genres
-- save music locally
-- cache api results for shorter loads
-- format for pip, upload to PyPI
+### Todo
+
+- list playlists command
+- Properly display shuffled queue
+- Restore queue from shuffle
+- Seek backwards function
+- Colour support
+- Text-only debugging UI
+- Add threading support (play in background and keep browsing)
+- Caching queue contents for seamless transitions (save locally and delete after? Probably needs threading)
