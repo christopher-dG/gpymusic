@@ -20,7 +20,7 @@ cp config.json config.example.json
 cp config.json config.example.json mpv_input.conf ~/.config/pmcli
 cp -r src ~/.local/share/pmcli
 chmod +x ~/.local/share/pmcli/src/pmcli.py
-ln -s ~/.local/share/pmcli/src/pmcli.py /usr/local/bin/pmcli
+sudo ln -s ~/.local/share/pmcli/src/pmcli.py /usr/local/bin/pmcli
 ```
 Finally, you should edit `~/.config/pmcli/config.json` with your account information.
 
