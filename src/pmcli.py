@@ -7,6 +7,9 @@ from music_objects import Song, Artist, Album, Queue
 from util import (
     addstr, to_string, leave, measure_fields, trunc, error_msg, initialize, api
 )
+import warnings
+
+warnings.filterwarnings("ignore")  # Todo: Something better.
 
 
 def transition(input):
