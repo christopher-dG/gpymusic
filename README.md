@@ -27,6 +27,12 @@ sudo ln -s ~/.local/share/pmcli/src/pmcli.py /usr/local/bin/pmcli
 ```
 Finally, you should edit `~/.config/pmcli/config.json` with your account information.
 
+## Password
+
+You can choose to leave the password field empty as it is in `config.example`, and you will be prompted for it upon starting the program. Otherwise, you can supply it for automatic logins.
+
+**If you store your password in plain text, be aware the potential consequences.**
+
 ## Device ID
 
 If you don't know your device ID, run `python get_dev_id.py` and answer the prompts to generate a list of valid device IDs.
@@ -81,7 +87,7 @@ If `pmcli` crashes, your terminal settings will likely be messed up, in which ca
 
 ## 2-Factor Authentication
 
-If your account has 2FA set up, you will need to use an [app password](https://support.google.com/accounts/answer/185833?hl=en) to log in. Replace the `password` field in your config file with the app password.
+If your account has 2FA set up, you will need to use an [app password](https://support.google.com/accounts/answer/185833?hl=en) to log in. If you're storing your password in your config file, replace it with the app password.
 
 ### Disclaimer
 Expect bugs, and please report them! I hope you enjoy using pmcli, and if you don't, that's okay too because I enjoy working on it.
