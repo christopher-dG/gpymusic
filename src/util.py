@@ -62,6 +62,8 @@ def initialize():
     infobar = crs.newwin(1, crs.COLS, crs.LINES-2, 0)  # For 'now playing'.
     outbar = crs.newwin(1, crs.COLS, crs.LINES-3, 0)  # For hints and notices.
     crs.curs_set(0)  # Hide the cursor.
+    main.addstr(5, int(crs.COLS/2) - 9, 'Welcome to pmcli!')
+    main.refresh()
 
     config = read_config(outbar)
 
@@ -73,9 +75,6 @@ def initialize():
         inbar.bkgdset(' ', crs.color_pair(1))
         infobar.bkgdset(' ', crs.color_pair(2))
         outbar.bkgdset(' ', crs.color_pair(4))
-
-    main.addstr(5, int(crs.COLS/2) - 9, 'Welcome to pmcli!')
-    main.refresh()
 
     # Log in to Google Play Music.
     addstr(outbar, 'Logging in...')
@@ -168,6 +167,33 @@ def measure_fields(width):
             name_start, artist_start, album_start)
 
 
+def password(win, config):
+    """
+    Prompt the user for their password if it is not supplied
+      in their config file.
+
+    Arguments:
+    win: Window on which to display the prompt.
+    config: Parsed config dict.
+
+    Returns: the config dict, either unchanged or with the entered password.
+    """
+    if not config['user']['password']:
+        crs.noecho()  # Don't show the password as it's entered.
+        addstr(win, 'Enter your password: ')
+
+        try:
+            config['user']['password'] = win.getstr().decode('utf-8')
+
+        except KeyboardInterrupt:
+            addstr(win, 'Exiting.')
+            leave(1)
+
+        crs.echo()
+
+    return config
+
+
 def validate_config(config):
     """Verify that a config file has all necessary data."""
     user_valid = (
@@ -205,7 +231,8 @@ def read_config(win):
 
     with open(path) as f:
         try:
-            config = json.loads(f.read())
+            with open(path) as f:
+                config = password(win, json.load(f))
         except json.decoder.JSONDecodeError:
             addstr(win, 'Invalid config file, please refer to '
                    'config.example: Exiting.')

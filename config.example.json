@@ -1,7 +1,7 @@
 {
     "user": {
         "email": "email@address.domain",
-        "password": "very_secure_password",
+        "password": "",
         "deviceid": "16_seemingly_random_characters"
     },
     "colour": {
