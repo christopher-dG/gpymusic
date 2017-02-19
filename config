@@ -1,5 +1,5 @@
 [auth]
-email: email@address.doman
+email: email@address.domain
 password: very_secure
 deviceid: random_characters
 
