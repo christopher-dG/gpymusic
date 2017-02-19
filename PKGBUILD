@@ -31,8 +31,6 @@ pip3 install gmusicapi
 mkdir -p ~/.{config/$pkgname,local/share/$pkgname/{src,script,playlists}}
 }
 
-}
-
 package()
 {
 cd "$pkgname-$pkgver"
