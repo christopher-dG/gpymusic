@@ -11,8 +11,9 @@ As of right now, pmcli only works for users with paid accounts (see [issue #5](h
 
 - [Python 3](https://python.org/downloads/)
 - [mpv](https://mpv.io)
-- [gmusicapi](https://github.com/simon-weber/gmusicapi): `pip install gmusicapi`
-- Note: If you have both Python 2 and Python 3 installed, specifify Python 3 by using: `pip3 install gmusicapi`
+- [gmusicapi](https://github.com/simon-weber/gmusicapi): 
+- `pip install gmusicapi` 
+-- Note: If you have both Python 2 and Python 3 installed, specify Python 3 by using: `pip3 install gmusicapi`.
 
 ## Installing, updating, & uninstalling
 
