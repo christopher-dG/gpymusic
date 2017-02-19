@@ -66,6 +66,14 @@ Colour themes are defined in the `[colour]` section of your config file. To enab
 
 Note: Upon exiting the program, your terminal colours will likely be modified. Just open a new terminal session and your colours will be back to normal.
 
+## Uninstalling
+
+You can uninstall `pmcli` with:
+
+```sh
+sudo rm -rf ~/.local/share/pmcli ~/.config/pmcli /usr/local/bin/pmcli
+```
+
 ## Crashes
 
 If `pmcli` crashes, your terminal settings will likely be messed up, in which case enter `stty sane` to restore order. And don't forget to file an issue!
