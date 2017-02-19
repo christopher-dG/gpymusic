@@ -1,8 +1,8 @@
 from gmusicapi import Mobileclient
 import curses as crs
-from configparser import ConfigParser
-from os.path import expanduser, isfile, join
+from os.path import expanduser, isfile, join, basename
 from time import sleep
+import json
 
 
 api = Mobileclient()  # Our interface to Google Music.
@@ -168,6 +168,24 @@ def measure_fields(width):
             name_start, artist_start, album_start)
 
 
+def validate_config(config):
+    """Verify that a config file has all necessary data."""
+    user_valid = (
+        'user' in config and 'email' in config['user'] and
+        'password' in config['user'] and 'deviceid' in config['user'])
+
+    colours_valid = (
+        'colour' not in config or 'enable' in config['colour'] and
+        (config['colour']['enable'] != 'yes' or
+         ('background' in config['colour'] and
+          'foreground' in config['colour'] and
+          'highlight' in config['colour'] and
+          'content1' in config['colour'] and
+          'content2' in config['colour'])))
+
+    return user_valid and colours_valid
+
+
 def read_config(win):
     """
     Parses a config file for login information.
@@ -177,38 +195,32 @@ def read_config(win):
     Arguments:
     win: Window on which to display output.
 
-    Returns: A dict containing keys 'email', 'password', and 'deviceid'.
+    Returns: A dict containing keys 'user' and 'colour''.
     """
-    parser = ConfigParser()
-    config = join(expanduser('~'), '.config', 'pmcli', 'config')
+    path = join(expanduser('~'), '.config', 'pmcli', 'config.json')
 
-    if not isfile(config):
-        addstr(win, 'Config file not found at %s: Exiting.' % config)
+    if not isfile(path):
+        addstr(win, 'Config file not found at %s: Exiting.' % basename(path))
         leave(2)
 
-    parser.read(config)
-    config = {}
+    with open(path) as f:
+        try:
+            config = json.loads(f.read())
+        except json.decoder.JSONDecodeError:
+            addstr(win, 'Invalid config file, please refer to '
+                   'config.example: Exiting.')
+            leave(2)
 
-    config['user'] = {}
-    try:
-        for key in parser['auth']:  # Read login information.
-            config['user'][key] = parser['auth'][key]
-
-    except KeyError:  # Invalid config file.
-        addstr(win, 'Config file is missing [auth] section: Exiting.')
+    if not validate_config(config):
+        addstr(win, 'Invalid config file, please refer to '
+               'config.example: Exiting.')
         leave(2)
 
     try:
-        colour = parser['colour']['enable'] == 'yes'
-
+        if config['colour']['enable'] == 'no':
+            del config['colour']
     except KeyError:
-        colour = False
-
-    if colour:
-        config['colour'] = {}
-        for key in parser['colour']:  # Read colour information.
-            if key != 'enable':
-                config['colour'][key] = parser['colour'][key]
+        pass
 
     return config
 
