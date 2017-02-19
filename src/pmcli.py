@@ -2,6 +2,7 @@
 
 import curses as crs
 from os.path import exists, expanduser, join, isfile
+import json
 from music_objects import Song, Artist, Album, Queue
 from util import (
     addstr, to_string, leave, measure_fields, trunc, error_msg, initialize, api
@@ -375,26 +376,24 @@ def restore(fn=None):
         error_msg(outbar, '%s does not exist.' % fn)
         return
 
-    songs = []
-    ids = open(join(path, fn)).read().strip('\n').split('\n')
     addstr(outbar, 'Restoring queue from %s...' % fn)
+    try:  # Read the playlist.
+        json_songs = json.loads(open(join(path, fn)).read())
+    except json.decoder.JSONDecodeError:  # Bad file.
+        error_msg(outbar, '%s is not a valid playlist file.' % fn)
+        return
 
-    for id in ids:
-        try:
-            songs.append(Song(api.get_track_info(id)))
+    songs = []
+    for song in json_songs:
+        if Song.verify(song):  # Make sure all the data is there.
+            songs.append(Song(song, json=True))
 
-        except:  # Todo: narrow down exception/error types.
-            error_msg(outbar, '%s is not a valid playlist file.'
-                      % fn)
-            return
-
-    # Clear the queue and add the file contents.
+    # Replace the current queue with the playlist.
     del queue[:]
     del queue.ids[:]
-    for song in songs:
-        queue.append(song)
-        queue.ids.append(song['id'])
-    addstr(outbar, 'Restored queue from %s.' % fn)
+    queue.extend(songs)
+    addstr(outbar, 'Restored %d/%d songs from playlist %s.' %
+           (len(songs), len(json_songs), fn))
 
 
 def search(query):
@@ -477,11 +476,13 @@ def write(fn=None):
     if not exists(path):  # No playlists directory.
         error_msg(outbar, 'Path to playlists does not exist.')
 
+    elif exists(join(path, fn)):
+        error_msg(outbar, 'Playist %s already exists.' % fn)
+
     else:  # Write the playlist.
         with open(join(path, fn), 'a') as f:
-            for song in queue:
-                f.write('%s\n' % song['id'])
-            addstr(outbar, 'Wrote queue to %s.' % fn)
+            json.dump(queue, f)
+        addstr(outbar, 'Wrote queue to %s.' % fn)
 
 
 if __name__ == '__main__':

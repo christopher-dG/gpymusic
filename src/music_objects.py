@@ -259,7 +259,7 @@ class Album(MusicObject):
 
 class Song(MusicObject):
     """A dict representing a song."""
-    def __init__(self, song, full=True):
+    def __init__(self, song, full=True, json=False):
         """
         Song constructor.
 
@@ -268,13 +268,36 @@ class Song(MusicObject):
 
         Keyword arguments:
         full=True: A song is always considered full.
+        json=False: Whether or not the song is being initialized from JSON.
         """
-        super().__init__(song['storeId'], song['title'], 'song', full)
-        self['artist'] = song['artist']
-        self['artist_ids'] = song['artistId']
-        self['album'] = song['album']
-        self['album_id'] = song['albumId']
-        self['time'] = time_from_ms(song['durationMillis'])
+        if not json:
+            super().__init__(song['storeId'], song['title'], 'song', full)
+            self['artist'] = song['artist']
+            self['artist_ids'] = song['artistId']
+            self['album'] = song['album']
+            self['album_id'] = song['albumId']
+            self['time'] = time_from_ms(song['durationMillis'])
+        else:
+            super().__init__(song['id'], song['name'], 'song', full)
+            self['artist'] = song['artist']
+            self['artist_ids'] = song['artist_ids']
+            self['album'] = song['album']
+            self['album_id'] = song['album_id']
+            self['time'] = song['time']
+
+    @staticmethod
+    def verify(item):
+        """
+        Make sure a dict contains all necessary song data.
+
+        Arguments:
+        item: The dict being checked.
+
+        Returns: Whether or not the item contains all necessary data.
+        """
+        return ('id' in item and 'name' in item and 'kind' in item and
+                'full' in item and 'artist' in item and 'artist_ids' in item
+                and 'album' in item and 'album_id' in item and 'time' in item)
 
     def collect(self, limit=None):
         """
@@ -337,7 +360,7 @@ class Queue(list):
             self.ids.append(item['id'])
 
         else:
-            super().append(item)
+            super().append(item.fill())
             self.ids.append(item['id'])
 
     def extend(self, items):
