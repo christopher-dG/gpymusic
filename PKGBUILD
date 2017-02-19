@@ -31,14 +31,14 @@ pip3 install gmusicapi
 mkdir -p ~/.{config/$pkgname,local/share/$pkgname/{src,script,playlists}}
 }
 
-build()
-{
-cd "$pkgname-$pkgver"
-cp src/*.py ~/.local/share/$pkgname/src
-cp config mpv_input.conf ~/.config/$pkgname
 }
+
 package()
 {
+cd "$pkgname-$pkgver"
+cp {pmcli,music_objects,util}.py ~/.local/share/$pkgname/src
+cp get_dev_id.py ~/.local/share/pmcli/script
+cp config mpv_input.conf ~/.config/$pkgname
 chmod +x ~/.local/share/$pkgname/src/pmcli.py
 sudo ln -s ~/.local/share/$pkgname/src/pmcli.py /usr/local/bin/pmcli
 }
