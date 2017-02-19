@@ -180,6 +180,9 @@ def enqueue(arg=None):
     arg=None: Index of the MusicObject in the main window to add to
       the queue, 'c' to clear the queue, None to display the queue, or
       a space-delimited list of indices to add to the queue, i.e. '1 2 3'.
+
+    Returns: True if an element was successfully inserted. To be used
+      when inserting multiple elements.
     """
     global content
 
@@ -209,9 +212,11 @@ def enqueue(arg=None):
                 except ValueError:
                     error_msg(outbar, 'Invalid argument to queue.')
                 else:  # Add all arguments to the queue.
+                    count = 0
                     for num in nums:
-                        enqueue(num)
-                    addstr(outbar, 'Added %d items to the queue.' % len(nums))
+                        count = count + 1 if enqueue(num) else count
+                    addstr(outbar, 'Added %d item%s to the queue.' %
+                           (count, '' if count == 1 else 's'))
 
             else:
                 opt = get_option(num)
@@ -230,6 +235,7 @@ def enqueue(arg=None):
                         queue.append(opt)
                         addstr(outbar, 'Added \'%s\' to the queue.' %
                                to_string(opt))
+                        return True
 
                 else:  # num out of range.
                     error_msg(outbar, 'Invalid number. Valid between 1-%d.' %
