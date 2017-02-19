@@ -1,6 +1,6 @@
 # pmcli - (p)lay (m)usic for (cli)
 
-Browse and stream Google Play Music from the command line
+Browse and stream Google Play Music from comfort and familiarity of your favourite terminal
 
 ![screencast]( https://zippy.gfycat.com/SnivelingLavishAtlanticblackgoby.gif "gfy")
 
@@ -56,6 +56,7 @@ When playing music:
 - `9/0`: Volume down/up (Note: volume changes do not persist across songs, so I recommend you adjust your system volume instead)
 - `n`: Next track
 - `q`: Stop
+- `↑/↓/←/→`: Seek
 
 ## Colours
 
