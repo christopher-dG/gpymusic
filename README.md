@@ -46,6 +46,7 @@ Note: Please, for your own sake, don't resize your terminal while the program is
 - `p/play 123`: Play item number 123
 - `q/queue`: Show current queue
 - `q/queue 123`:  Add item number 123 to queue
+- `q/queue 1 2 3`:  Add items 1, 2, 3 to queue
 - `q/queue c`:  Clear current queue
 - `w/write file-name`: Write current queue to file file-name
 - `r/restore file-name`: Replace current queue with playlist from file-name

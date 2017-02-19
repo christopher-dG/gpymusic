@@ -37,7 +37,8 @@ def transition(input):
         addstr(infobar, 'Now playing: None')
 
     try:
-        command, arg = input.split(' ', 1)
+        command, arg = input.split(maxsplit=1)
+
     except ValueError:
         command = input
 
@@ -57,6 +58,7 @@ def get_input():
 
     try:
         input = inbar.getstr()
+
     except KeyboardInterrupt:
         addstr(outbar, 'Goodbye, thanks for using pmcli!')
         leave(1)
@@ -176,7 +178,8 @@ def enqueue(arg=None):
 
     Keyword arguments:
     arg=None: Index of the MusicObject in the main window to add to
-      the queue, 'c' to clear the queue, or None to display the queue.
+      the queue, 'c' to clear the queue, None to display the queue, or
+      a space-delimited list of indices to add to the queue, i.e. '1 2 3'.
     """
     global content
 
@@ -198,11 +201,21 @@ def enqueue(arg=None):
         else:
             try:
                 num = int(arg)
-            except ValueError:  # arg needs to be an int if it's not 'c'.
-                error_msg(outbar, 'Invalid argument to queue.')
+
+            except ValueError:
+                # Check for multi-option argument.
+                try:
+                    nums = [int(i) for i in arg.split()]
+                except ValueError:
+                    error_msg(outbar, 'Invalid argument to queue.')
+                else:  # Add all arguments to the queue.
+                    for num in nums:
+                        enqueue(num)
+                    addstr(outbar, 'Added %d items to the queue.' % len(nums))
+
             else:
                 opt = get_option(num)
-                if opt is not None:  # Valid input.
+                if opt is not None:
                     if opt['kind'] == 'artist':  # Artists can't be queued.
                         error_msg(outbar,
                                   'Can only add songs or albums to the queue.')
@@ -241,8 +254,10 @@ def expand(num=None):
     else:
         try:
             num = int(num)
+
         except ValueError:  # num needs to be an int.
             error_msg(outbar, 'Invalid argument to play.')
+
         else:
             limit = int((main.getmaxyx()[0] - 6)/3)
             opt = get_option(num, limit)
@@ -277,6 +292,7 @@ def help(arg=0):
         p/play 123: Play item number 123
         q/queue: Show current queue
         q/queue 123:  Add item number 123 to queue
+        q/queue 1 2 3:  Add items 1, 2, 3 to queue
         q/queue c:  Clear the current queue
         w/write file-name: Write current queue to file file-name
         r/restore file-name: Replace current queue with playlist from file-name
@@ -317,8 +333,10 @@ def play(arg=None):
     else:
         try:
             num = int(arg)
+
         except ValueError:  # arg needs to be an int if it isn't 's'.
             error_msg(outbar, 'Invalid argument to play.')
+
         else:
             opt = get_option(num)
 
@@ -339,7 +357,7 @@ def restore(fn=None):
     Restore queue from a file.
 
     Keyword arguments:
-    fn: Name of the file containing the playlist.
+    fn=None: Name of the file containing the playlist.
       File should be at ~/.local/share/pmcli/playlists/.
     """
     if fn is None:  # No argument.
@@ -358,6 +376,7 @@ def restore(fn=None):
     for id in ids:
         try:
             songs.append(Song(api.get_track_info(id)))
+
         except:  # Todo: narrow down exception/error types.
             error_msg(outbar, '%s is not a valid playlist file.'
                       % fn)
@@ -425,22 +444,27 @@ def search(query):
                 content[k].append(
                     mapping[k]['class'](next(result[k])[mapping[k]['key']])
                 )
+
             except StopIteration:
                 pass
 
     return content
 
 
-def write(fn):
+def write(fn=None):
     """
     Write the current queue to a file.
 
-    Arguments:
-    fn: File to be written to.
+    Keyword arguments:
+    fn=None: File to be written to.
       File is stored at ~/.local/share/pmcli/playlists/.
     """
     if not queue:  # Can't save an empty queue.
         error_msg(outbar, 'Queue is empty.')
+        return
+
+    if fn is None:  # No argument.
+        error_msg(outbar, 'Missing argument to write.')
         return
 
     path = join(expanduser('~'), '.local', 'share', 'pmcli', 'playlists')

@@ -79,6 +79,7 @@ class Artist(MusicObject):
                     'kind': 'song'
                 } for song in artist['topTracks']
             ]
+
         except KeyError:
             self['songs'] = []
 
@@ -91,6 +92,7 @@ class Artist(MusicObject):
                     'kind': 'album'
                 } for album in artist['albums']
             ]
+
         except KeyError:
             self['albums'] = []
 
@@ -119,6 +121,7 @@ class Artist(MusicObject):
                 aggregate['songs'].append(
                     Song(api.get_track_info(next(songs)['id']))
                 )
+
             except StopIteration:
                 pass
 
@@ -126,6 +129,7 @@ class Artist(MusicObject):
                 aggregate['albums'].append(
                     Album(api.get_album_info(next(albums)['id']))
                 )
+
             except StopIteration:
                 pass
 
@@ -188,6 +192,7 @@ class Album(MusicObject):
                     'kind': 'song'
                 } for song in album['tracks']
             ]
+
         except KeyError:
             self['songs'] = []
 
@@ -217,6 +222,7 @@ class Album(MusicObject):
                 aggregate['songs'].append(
                     Song(api.get_track_info(next(songs)['id']))
                 )
+
             except StopIteration:
                 pass
 

@@ -92,6 +92,7 @@ def init_colours(win, colours):
         crs.init_color(2, *hex_to_rgb(colours['highlight']))
         crs.init_color(3, *hex_to_rgb(colours['content1']))
         crs.init_color(4, *hex_to_rgb(colours['content2']))
+
     except KeyError:
         addstr(win, 'Config file is missing one or more colours: Exiting.')
         leave(2)
@@ -128,6 +129,7 @@ def login(win, user):
         ):  # Login failed;
             addstr(win, 'Login failed: Exiting.')
             leave(2)
+
     except KeyError:  # Invalid config file.
         addstr(win, 'Config file is missing one or more fields: Exiting.')
         leave(2)
@@ -191,14 +193,17 @@ def read_config(win):
     try:
         for key in parser['auth']:  # Read login information.
             config['user'][key] = parser['auth'][key]
+
     except KeyError:  # Invalid config file.
         addstr(win, 'Config file is missing [auth] section: Exiting.')
         leave(2)
 
     try:
         colour = parser['colour']['enable'] == 'yes'
+
     except KeyError:
         colour = False
+
     if colour:
         config['colour'] = {}
         for key in parser['colour']:  # Read colour information.
@@ -223,7 +228,8 @@ def to_string(item):
         return item['name']
     if item['kind'] == 'album':
         return ' - '.join((item['name'], item['artist']))
-    raise ValueError('Invalid type to convert to string.')
+
+    return str(item)
 
 
 def time_from_ms(ms):
