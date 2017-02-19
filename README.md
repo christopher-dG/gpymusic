@@ -13,19 +13,9 @@ As of right now, pmcli only works for users with paid accounts (see [issue #5](h
 - [mpv](https://mpv.io)
 - [gmusicapi](https://github.com/simon-weber/gmusicapi): `pip install gmusicapi`
 
-## Installation
+## Installing, updating, & uninstalling
 
-```sh
-git clone https://github.com/christopher-dG/pmcli
-cd pmcli
-mkdir -p ~/.config/pmcli ~/.local/share/pmcli/playlists
-cp config.json config.example.json
-cp config.json config.example.json mpv_input.conf ~/.config/pmcli
-cp -r src ~/.local/share/pmcli
-chmod +x ~/.local/share/pmcli/src/pmcli.py
-sudo ln -s ~/.local/share/pmcli/src/pmcli.py /usr/local/bin/pmcli
-```
-Finally, you should edit `~/.config/pmcli/config.json` with your account information.
+Use the included `.sh` scripts to install, update or remove the program.
 
 ## Password
 
@@ -73,21 +63,13 @@ Colour themes are defined in the `[colour]` section of your config file. To enab
 
 Note: Upon exiting the program, your terminal colours will likely be modified. Just open a new terminal session and your colours will be back to normal.
 
-## Uninstalling
+## 2-Factor Authentication
 
-You can uninstall `pmcli` with:
-
-```sh
-sudo rm -rf ~/.local/share/pmcli ~/.config/pmcli /usr/local/bin/pmcli
-```
+If your account has 2FA set up, you will need to use an [app password](https://support.google.com/accounts/answer/185833?hl=en) to log in. If you're storing your password in your config file, replace it with the app password.
 
 ## Crashes
 
 If `pmcli` crashes, your terminal settings will likely be messed up, in which case enter `stty sane` to restore order. And don't forget to file an issue!
-
-## 2-Factor Authentication
-
-If your account has 2FA set up, you will need to use an [app password](https://support.google.com/accounts/answer/185833?hl=en) to log in. If you're storing your password in your config file, replace it with the app password.
 
 ### Disclaimer
 Expect bugs, and please report them! I hope you enjoy using pmcli, and if you don't, that's okay too because I enjoy working on it.
