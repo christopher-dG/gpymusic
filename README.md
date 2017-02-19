@@ -20,7 +20,7 @@ cd pmcli
 Now, edit the `[auth]` section of `config` with your Google account information. Next:
 
 ```sh
-mkdir -p ~/.{config/$pkgname,local/share/$pkgname/{src,script,playlists}}
+mkdir -p ~/.{config/pmcli,local/share/pmcli/{src,script,playlists}}
 cp config mpv_input.conf ~/.config/pmcli
 cp {pmcli,music_objects,util}.py ~/.local/share/pmcli/src
 cp get_dev_id.py ~/.local/share/pmcli/script
