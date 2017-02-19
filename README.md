@@ -66,9 +66,13 @@ Colour themes are defined in the `[colour]` section of your config file. To enab
 
 Note: Upon exiting the program, your terminal colours will likely be modified. Just open a new terminal session and your colours will be back to normal.
 
+## Crashes
+
+If `pmcli` crashes, your terminal settings will likely be messed up, in which case enter `stty sane` to restore order. And don't forget to file an issue!
+
 ## 2-Factor Authentication
 
 If your account has 2FA set up, you will need to use an [app password](https://support.google.com/accounts/answer/185833?hl=en) to log in. Replace the `password` field in your config file with the app password.
 
 ### Disclaimer
-expect bugs, and please report them! I hope you enjoy using pmcli, and if you don't, that's okay too because I enjoy working on it.
+Expect bugs, and please report them! I hope you enjoy using pmcli, and if you don't, that's okay too because I enjoy working on it.

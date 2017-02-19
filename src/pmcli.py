@@ -396,12 +396,12 @@ def restore(fn=None):
            (len(songs), len(json_songs), fn))
 
 
-def search(query):
+def search(query=None):
     """
     Search Google Play Music for a given query.
 
-    Arguments:
-    query: The search query.
+    Keyword arguments:
+    query=None: The search query.
 
     Returns: A dict of lists with keys 'songs', 'artists', and 'albums'.
     """
@@ -409,6 +409,7 @@ def search(query):
 
     if query is None:  # No argument.
         error_msg(outbar, 'Missing search query.')
+        return
 
     # Fetch as many results as we can display depending on terminal height.
     limit = int((main.getmaxyx()[0] - 3)/3)
