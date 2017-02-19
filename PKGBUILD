@@ -22,7 +22,7 @@ install=
 changelog=
 source=("https://github.com/christopher-dg/$pkgname/archive/$pkgver.tar.gz")
 noextract=()
-md5sums=("6607f1f178ffdde1b6c260379d9952b3")
+md5sums=("17c1bfdb3b8f7f418ced4ea79c170cdb")
 validpgpkeys=()
 
 prepare()
