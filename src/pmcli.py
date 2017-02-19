@@ -416,6 +416,8 @@ def search(query=None):
 
     # Fetch as many results as we can display depending on terminal height.
     limit = int((main.getmaxyx()[0] - 3)/3)
+    with open('log.txt', 'w') as f:
+        f.write('limit = %d\n' % limit)
     addstr(outbar, 'Searching for \'%s\'...' % query)
     result = api.search(query, max_results=limit)
 
