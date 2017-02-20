@@ -4,14 +4,13 @@ import curses as crs
 from gmusicapi import Mobileclient
 from os.path import exists, expanduser, join, isfile, basename
 from random import shuffle
+from getpass import getpass
 from subprocess import call
 from time import sleep
 import json
 import warnings
 
 warnings.filterwarnings('ignore')
-
-api = Mobileclient()  # Our interface to Google Music.
 
 
 # -------------------- MUSIC OBJECT CLASSES START -------------------- #
@@ -47,15 +46,18 @@ class MusicObject(dict):
         Returns: None if all items were played, or the index of the
           first unplayed item to be used in restoring the queue.
         """
-        conf_path = '~/.config/pmcli/mpv_input.conf'
+        conf_path = join(expanduser('~'), '.config', 'pmcli', 'mpv_input.conf')
+        if not exists(conf_path):
+            out.goodbye('No mpv_input.conf found.')
         i = 1
 
         for song in songs:
             url = api.get_stream_url(song['id'])
             out.now_playing(song.to_string(), song['time'])
 
-            if (call(['mpv', '--really-quiet', '--input-conf', conf_path, url])
-                is 11):  # 'q' returns this exit code.
+            if call(
+                    ['mpv', '--really-quiet', '--input-conf', conf_path, url]
+            ) == 11:  # 'q' returns this exit code.
                 return i if i < len(songs) else None
             i += 1
 
@@ -187,7 +189,7 @@ class Album(MusicObject):
 
         Returns: The album name and artist.
         """
-        return ' - '.join((item['name'], item['artist']))
+        return ' - '.join((self['name'], self['artist']['name']))
 
     def play(self):
         """Play an Album's song list."""
@@ -282,11 +284,11 @@ class Song(MusicObject):
         return self
 
     def to_string(self):
-        return ' - '.join((self['name'], self['artist']))
+        return ' - '.join((self['name'], self['artist']['name']))
 
     def play(self):
         """Play a Song."""
-        MusicObject.play(self)
+        MusicObject.play([self])
 
 
 class Queue(list):
@@ -337,8 +339,8 @@ class Queue(list):
         Returns: number of songs that were successfully inserted.
         """
         count = 0
-        for song in songs:
-            count += self.append(song)
+        for item in items:
+            count += self.append(item)
 
         return count
 
@@ -349,9 +351,9 @@ class Queue(list):
 
     def shuffle(self):
         """Shuffle the queue."""
-        del self.ids[:]
         songs = [self.pop(0) for i in range(len(self))]
         del self[:]
+        del self.ids[:]
         shuffle(songs)
         self.extend(songs)
 
@@ -374,12 +376,10 @@ class Queue(list):
         """Play the queue."""
 
         # Save the queue contents to restore unplayed items.
-        cache = []
-        for i in range(len(self)):
-            cache.append(self.pop(0))
+        cache = self[:]
+        del self[:]
         del self.ids[:]
-
-        index = MusicObject.play(win, self)
+        index = MusicObject.play(cache)
         out.now_playing()
         self.extend(cache[index:])
 
@@ -398,7 +398,7 @@ class CrsWriter():
 
         Arguments:
         main/inbar/infobar/outbar: curses windows.
-        
+
         Keyword arguments:
         disable=False: Flag for disabling curses output.
         colour=False: Flag for disabling colour output.
@@ -454,11 +454,16 @@ class CrsWriter():
         """
         if self.disable:
             return
-        
+
         if string is None or time is None:
             self.addstr(self.infobar, 'Now playing: None')
         else:
-            self.addstr(self.infobar, 'Now playing: %s %s' % (string, time))
+            self.addstr(self.infobar, 'Now playing: %s (%s)' % (string, time))
+
+    def erase_outbar(self):
+        """Erases content on the outbar."""
+        self.outbar.erase()
+        self.outbar.refresh()
 
     def error_msg(self, msg):
         """
@@ -500,22 +505,21 @@ class CrsWriter():
 
         Returns: The user-inputted string.
         """
-        if disable:
+        if self.disable:
             return input('Enter some input: ')
 
         self.addstr(self.inbar, '> ')
         crs.curs_set(2)  # Show the cursor.
 
         try:
-            input = inbar.getstr().decode('utf-8')
+            string = inbar.getstr()
         except KeyboardInterrupt:
-            self.addstr(self.outbar, 'Goodbye, thanks for using pmcli!')
-            leave(1)
+            self.goodbye('Goodbye, thanks for using pmcli!')
 
         inbar.deleteln()
         crs.curs_set(0)  # Hide the cursor.
 
-        return input.decode('utf-8')
+        return string.decode('utf-8')
 
     def outbar_msg(self, msg):
         """
@@ -524,11 +528,10 @@ class CrsWriter():
         Arguments:
         msg: Message to be displayed.
         """
-        if disable:
+        if self.disable:
             return
 
         self.addstr(outbar, msg)
-
 
     def display(self):
         """Update the main window with some content."""
@@ -543,7 +546,7 @@ class CrsWriter():
             Arguments:
             width: Width of the window being divided.
 
-            Returns: A tuple containing character allocations 
+            Returns: A tuple containing character allocations
               and start positions.
             """
             padding = 1  # Space between fields.
@@ -563,7 +566,6 @@ class CrsWriter():
 
             return (i_ch, n_ch, ar_ch, al_ch,
                     n_start, ar_start, al_start)
-
 
         c = self.colour
         self.main.erase()
@@ -594,10 +596,10 @@ class CrsWriter():
                     y, n_start, CrsWriter.trunc(song['name'], n_ch),
                     crs.color_pair(3 if y % 2 == 0 else 4) if c else 0)
                 self.main.addstr(
-                    y, ar_start, CrsWriter.trunc(song['artist'], ar_ch),
+                    y, ar_start, CrsWriter.trunc(song['artist']['name'], ar_ch),  # noqa
                     crs.color_pair(3 if y % 2 == 0 else 4) if c else 0)
                 self.main.addstr(
-                    y, al_start, CrsWriter.trunc(song['album'], al_ch),
+                    y, al_start, CrsWriter.trunc(song['album']['name'], al_ch),
                     crs.color_pair(3 if y % 2 == 0 else 4) if c else 0)
 
                 y += 1
@@ -616,11 +618,10 @@ class CrsWriter():
                 self.main.addstr(
                     y, 0, str(i).zfill(2),
                     crs.color_pair(3 if y % 2 == 0 else 4) if c else 0)
-                    
                 self.main.addstr(
                     y, n_start, CrsWriter.trunc(artist['name'], n_ch),
                     crs.color_pair(3 if y % 2 == 0 else 4) if c else 0)
-                    
+
                 y += 1
                 i += 1
 
@@ -644,9 +645,9 @@ class CrsWriter():
                     y, n_start, CrsWriter.trunc(album['name'], n_ch),
                     crs.color_pair(3 if y % 2 == 0 else 4) if c else 0)
                 self.main.addstr(
-                    y, ar_start, CrsWriter.trunc(album['artist'], ar_ch),
+                    y, ar_start, CrsWriter.trunc(album['artist']['name'], ar_ch),  # noqa
                     crs.color_pair(3 if y % 2 == 0 else 4) if c else 0)
-                    
+
                 y += 1
                 i += 1
 
@@ -711,7 +712,7 @@ def get_option(num, limit=-1):
 
     Returns: The MusicObject at index 'num'.
     """
-    total = sum([len(content[k]) for k in content.keys])
+    total = sum([len(content[k]) for k in content.keys()])
     if num < 0 or num > total:
         out.error_msg('Index out of range: valid between 1-%d.' % total)
         return None
@@ -765,7 +766,7 @@ def enqueue(arg=None):
                     count = queue.extend(
                         [item for item in items if item is not None])
                     out.outbar_msg('Added %d songs%s to the queue.' %
-                           (count, '' if count == 1 else 's'))
+                                   (count, '' if count == 1 else 's'))
 
             else:
                 item = get_option(num)
@@ -773,7 +774,6 @@ def enqueue(arg=None):
                     if item['kind'] == 'artist':  # Artists can't be queued.
                         out.error_msg(
                             'Can only add songs or albums to the queue.')
-
                     else:
                         queue.append(item)
                         out.outbar_msg('Added \'%s\' to the queue.' %
@@ -803,7 +803,9 @@ def expand(num=None):
             if out.disable:
                 limit = -1
             else:
-                limit = int((main.getmaxyx()[0] - 6)/3)
+                # Artists only have one artist and albums only have one album,
+                # so we can allocate more space for the other fields.
+                limit = int((main.getmaxyx()[0] - 9)/2)
             opt = get_option(num, limit)
 
             if opt is not None:  # Valid input.
@@ -826,7 +828,7 @@ def help(arg=0):
 
     # Don't use generic addstr() because we don't want to call trunc() here.
     main.erase()
-    self.main.addstr(
+    out.main.addstr(
         """
         Commands:
         s/search search-term: Search for search-term
@@ -865,11 +867,10 @@ def play(arg=None):
                 queue.shuffle()
             content = queue.collect()
             out.display()
-            out.outbar_msg('[spc] pause [q] stop [n] next [9-0] volume [arrows] seek')
+            out.outbar_msg(
+                '[spc] pause [q] stop [n] next [9-0] volume [arrows] seek')
             queue.play()
-            if not out.disable:
-                outbar.erase()  # Remove trailing output.
-                outbar.refresh()
+            out.erase_outbar()
 
     elif content is None:  # Nothing to play.
         out.error_msg('Wrong context for play.')
@@ -882,12 +883,11 @@ def play(arg=None):
             opt = get_option(num)
 
             if opt is not None:  # Valid input.
-                out.outbar_msg('[spc] pause [q] stop [n] next [9-0] volume [arrows] seek')
+                out.outbar_msg(
+                    '[spc] pause [q] stop [n] next [9-0] volume [arrows] seek')
                 opt.play()
                 out.addstr(infobar, 'Now playing: None')
-                if not out.disable:  # Remove trailing output.
-                    outbar.erase()
-                    outbar.refresh()
+                out.erase_outbar()
 
 
 def restore(fn=None):
@@ -902,7 +902,7 @@ def restore(fn=None):
     if fn is None:  # No argument.
         out.error_msg('Missing argument to restore.')
     elif not exists(join(path, fn)):  # Playlist file doesn't exist.
-        out.error_msg('%s does not exist.' % fn)
+        out.error_msg('Playlist %s does not exist.' % fn)
     else:
         out.outbar_msg('Restoring queue from %s...' % fn)
         try:  # Read the playlist.
@@ -941,13 +941,11 @@ def search(query=None):
     if not out.disable:
         limit = int((main.getmaxyx()[0] - 3)/3)
     else:
-        limit = -1
+        limit = 50
 
     out.outbar_msg('Searching for \'%s\'...' % query)
     result = api.search(query, max_results=limit)
-    if not out.disable:
-        outbar.erase()  # Remove trailing output.
-        outbar.refresh()
+    out.erase_outbar()
 
     # 'class' => class of MusicObject
     # 'hits' => key in search result
@@ -970,12 +968,16 @@ def search(query=None):
         }
     }
     content = {'songs': [], 'artists': [], 'albums': []}
-    iters = [iter(result[mapping[k]['hits']]) for k in content.keys()]
+    iters = {k: iter(result[mapping[k]['hits']]) for k in content.keys()}
 
     # Create 'limit' of each type.
     for i in range(limit):
         for k in content.keys():
             try:
+                # cls = mapping[k]['class']
+                # item = next(iters[k])
+                # key = mapping[k]['key']
+                # content[k].append(cls(item[key]))
                 content[k].append(
                     mapping[k]['class'](next(iters[k])[mapping[k]['key']]))
             except StopIteration:
@@ -1007,9 +1009,8 @@ def write(fn=None):
         out.outbar_msg('Wrote queue to %s.' % fn)
 
 
-
-
 # ------------------------- LOGIN STUFF START ------------------------- #
+
 
 def set_colours(colours):
     """
@@ -1035,6 +1036,7 @@ def set_colours(colours):
 
         return (r, g, b)
 
+    crs.start_color()
     # Define colours.
     crs.init_color(0, *hex_to_rgb(colours['background']))
     crs.init_color(1, *hex_to_rgb(colours['foreground']))
@@ -1050,7 +1052,6 @@ def set_colours(colours):
 
     # Set colours.
     crs.start_color()
-    set_colours(config['colour'])
     main.bkgdset(' ', crs.color_pair(1))
     inbar.bkgdset(' ', crs.color_pair(1))
     infobar.bkgdset(' ', crs.color_pair(2))
@@ -1080,11 +1081,12 @@ def validate_config(config):
           'content1' in config['colour'] and
           'content2' in config['colour'])))
 
-    if not user_valid or colours_valid:
-            out.goodbye('Invalid config file, please refer to '
-                        'config.example: Exiting.')
+    if not user_valid or not colours_valid:
+        out.goodbye('Invalid config file, please refer to '
+                    'config.example: Exiting.')
 
     return colours_valid
+
 
 def password(config):
     """
@@ -1114,11 +1116,12 @@ def password(config):
 
     return config
 
+
 def read_config():
     """
     Parses a config file for login information.
       Config file should be located at '~/.config/pmcli/config'
-      with a section called [auth] containing email, password, 
+      with a section called [auth] containing email, password,
       and deviceid.
 
     Returns: A dict containing keys 'user' and 'colour''.
@@ -1138,6 +1141,7 @@ def read_config():
 
     return config
 
+
 def get_windows():
     """
     Initialize the curses windows.
@@ -1151,6 +1155,18 @@ def get_windows():
     outbar = crs.newwin(1, crs.COLS, crs.LINES-3, 0)  # For notices.
     return main, inbar, infobar, outbar
 
+
+def easy_login():
+    """One-step login for debugging."""
+    config = (password(read_config()))
+    validate_config(config)
+    user = config['user']
+
+    if not api.login(user['email'], user['password'], user['deviceid']):
+        print('Login failed: exiting.')
+        quit()
+
+
 def login(user):
     """
     Log into Google Play Music. Succeeds or exits.
@@ -1158,25 +1174,33 @@ def login(user):
     Arguments:
     user: Dict containing auth information.
     """
+    out.addstr(outbar, 'Logging in...')
     if not api.login(user['email'], user['password'], user['deviceid']):
         out.goodbye('Login failed: Exiting.')
-    out.addstr(outbar, 'Logged in as %s.' % user['email'])  # Login succeeded.
+    out.addstr(outbar, 'Logging in... Logged in as %s (%s).' %
+               (user['email'], 'Full' if api.is_subscribed else 'Free'))
+
+
+api = Mobileclient()  # Our interface to Google Music.
+# Disable curses for testing.
+main, inbar, infobar, outbar = None, None, None, None
+out = CrsWriter(main, inbar, infobar, outbar, disable=True)
 
 
 if __name__ == '__main__':
     main, inbar, infobar, outbar = get_windows()
     out = CrsWriter(main, inbar, infobar, outbar)
+    out.welcome()
     config = password(read_config())
     colour = validate_config(config)
     if colour:
         set_colours(config['colour'])
         out.colour = True
-    out.addstr(infobar, 'Enter \'h\' or \'help\' if you need help.')
     login(config['user'])
+    out.addstr(infobar, 'Enter \'h\' or \'help\' if you need help.')
     queue = Queue()
     global content
     content = None
 
     while True:
-        pass
-        # transition(out.get_input())
+        transition(out.get_input())
