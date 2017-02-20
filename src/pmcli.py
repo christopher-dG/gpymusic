@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 
 import curses as crs
+from gmusicapi import Mobileclient
 from os.path import exists, expanduser, join, isfile
+from random import shuffle
 import json
-from music_objects import Song, Artist, Album, Queue
-from util import (
-    addstr, to_string, leave, measure_fields, trunc, error_msg, initialize, api
-)
 import warnings
 
 warnings.filterwarnings('ignore')
+
+api = Mobileclient()  # Our interface to Google Music.
 
 
 def transition(input):
@@ -491,6 +491,728 @@ def write(fn=None):
         addstr(outbar, 'Wrote queue to %s.' % fn)
 
 
+def addstr(win, string):
+    """
+    Replace the contents of a window with a new string.
+      Not for anything where position matters.
+
+    Arguments:
+    win: Window on which to display the string.
+    string: String to be displayed.
+    """
+    win.erase()
+    win.addstr(trunc(string, win.getmaxyx()[1]))
+    win.refresh()
+
+
+def error_msg(win, msg):
+    """
+    Displays an error message.
+
+    Arguments:
+    win: Window on which to display the message.
+    msg: Message to be displayed.
+    """
+    addstr(win, 'Error: ' + msg + ' Enter \'h\' or \'help\' for help.')
+
+
+def hex_to_rgb(hex):
+    """
+    Convert a hex colour to (r, g, b).
+23
+    Arguments:
+    hex: hexidecimal colour code.
+
+    Returns: (r, g, b) tuple with values 0-1000.
+    """
+    scalar = 3.9215  # 255 * 3.9215 ~= 1000.
+    r = int(int(hex[1:3], 16) * scalar)
+    g = int(int(hex[3:5], 16) * scalar)
+    b = int(int(hex[5:7], 16) * scalar)
+
+    return r, g, b
+
+
+def initialize():
+    """
+    Initialize the windows, read the config, login, and set colours.
+
+    Returns: Whether or not colours are enabled, and curses windows.
+    """
+    main = crs.initscr()  # Forthe bulk of output.
+    main.resize(crs.LINES-3, crs.COLS)
+    inbar = crs.newwin(1, crs.COLS, crs.LINES-1, 0)  # For user input.
+    infobar = crs.newwin(1, crs.COLS, crs.LINES-2, 0)  # For 'now playing'.
+    outbar = crs.newwin(1, crs.COLS, crs.LINES-3, 0)  # For hints and notices.
+    crs.curs_set(0)  # Hide the cursor.
+    main.addstr(5, int(crs.COLS/2) - 9, 'Welcome to pmcli!')
+    main.refresh()
+
+    config = read_config(outbar)
+
+    # Set colours.
+    if 'colour' in config:
+        crs.start_color()
+        init_colours(outbar, config['colour'])
+        main.bkgdset(' ', crs.color_pair(1))
+        inbar.bkgdset(' ', crs.color_pair(1))
+        infobar.bkgdset(' ', crs.color_pair(2))
+        outbar.bkgdset(' ', crs.color_pair(4))
+
+    # Log in to Google Play Music.
+    addstr(outbar, 'Logging in...')
+    login(outbar, config['user'])
+
+    return 'colour' in config, main, inbar, infobar, outbar
+
+
+def init_colours(win, colours):
+    """Set curses colours."""
+    try:
+        crs.init_color(0, *hex_to_rgb(colours['background']))
+        crs.init_color(1, *hex_to_rgb(colours['foreground']))
+        crs.init_color(2, *hex_to_rgb(colours['highlight']))
+        crs.init_color(3, *hex_to_rgb(colours['content1']))
+        crs.init_color(4, *hex_to_rgb(colours['content2']))
+
+    except KeyError:
+        addstr(win, 'Config file is missing one or more colours: Exiting.')
+        leave(2)
+
+    crs.init_pair(1, 1, 0)
+    crs.init_pair(2, 2, 0)
+    crs.init_pair(3, 3, 0)
+    crs.init_pair(4, 4, 0)
+
+
+def leave(s):
+    """
+    Exit gracefully.
+
+    Arguments:
+    s: Quit after s seconds.
+    """
+    sleep(s)
+    crs.curs_set(1)
+    crs.endwin()
+    quit()
+
+
+def login(win, user):
+    """
+    Log in to Google Play Music.
+
+    Arguments:
+    win: Window on which to display output.
+    """
+    try:
+        if not api.login(
+                user['email'], user['password'], user['deviceid']
+        ):  # Login failed;
+            addstr(win, 'Login failed: Exiting.')
+            leave(2)
+
+    except KeyError:  # Invalid config file.
+        addstr(win, 'Config file is missing one or more fields: Exiting.')
+        leave(2)
+
+    addstr(win, 'Logged in as %s.' % user['email'])  # Login succeeded.
+
+
+def measure_fields(width):
+    """
+    Determine max number of  characters and starting point for category fields.
+
+    Arguments:
+    width: Width of the window being divided.
+
+    Returns: A tuple containing character allocations and start positions.
+    """
+    padding = 1  # Space between fields.
+    index_chars = 3  # Characters to allocate for index..
+    # Width of each field.
+    name_chars = artist_chars = album_chars = int(
+        (width - index_chars - 3*padding)/3
+    )
+
+    total = sum([index_chars, name_chars, artist_chars,
+                 album_chars, 3*padding])
+
+    if total != width:  # Allocate any leftover space to name.
+        name_chars += width - total
+
+    # Field starting x positions.
+    name_start = 0 + index_chars + padding
+    artist_start = name_start + name_chars + padding
+    album_start = artist_start + artist_chars + padding
+
+    return (index_chars, name_chars, artist_chars, album_chars,
+            name_start, artist_start, album_start)
+
+
+def password(win, config):
+    """
+    Prompt the user for their password if it is not supplied
+      in their config file.
+
+    Arguments:
+    win: Window on which to display the prompt.
+    config: Parsed config dict.
+
+    Returns: the config dict, either unchanged or with the entered password.
+    """
+    if not config['user']['password']:
+        crs.noecho()  # Don't show the password as it's entered.
+        addstr(win, 'Enter your password: ')
+
+        try:
+            config['user']['password'] = win.getstr().decode('utf-8')
+
+        except KeyboardInterrupt:
+            addstr(win, 'Exiting.')
+            leave(1)
+
+        crs.echo()
+
+    return config
+
+
+def validate_config(config):
+    """Verify that a config file has all necessary data."""
+    user_valid = (
+        'user' in config and 'email' in config['user'] and
+        'password' in config['user'] and 'deviceid' in config['user'])
+
+    colours_valid = (
+        'colour' not in config or 'enable' in config['colour'] and
+        (config['colour']['enable'] != 'yes' or
+         ('background' in config['colour'] and
+          'foreground' in config['colour'] and
+          'highlight' in config['colour'] and
+          'content1' in config['colour'] and
+          'content2' in config['colour'])))
+
+    return user_valid and colours_valid
+
+
+def read_config(win):
+    """
+    Parses a config file for login information.
+      Config file should be located at '~/.config/pmcli/config'
+      with a section called [auth] containing email, password, and deviceid.
+
+    Arguments:
+    win: Window on which to display output.
+
+    Returns: A dict containing keys 'user' and 'colour''.
+    """
+    path = join(expanduser('~'), '.config', 'pmcli', 'config.json')
+
+    if not isfile(path):
+        addstr(win, 'Config file not found at %s: Exiting.' % basename(path))
+        leave(2)
+
+    with open(path) as f:
+        try:
+            with open(path) as f:
+                config = password(win, json.load(f))
+        except json.decoder.JSONDecodeError:
+            addstr(win, 'Invalid config file, please refer to '
+                   'config.example: Exiting.')
+            leave(2)
+
+    if not validate_config(config):
+        addstr(win, 'Invalid config file, please refer to '
+               'config.example: Exiting.')
+        leave(2)
+
+    try:
+        if config['colour']['enable'] == 'no':
+            del config['colour']
+    except KeyError:
+        pass
+
+    return config
+
+
+def to_string(item):
+    """
+    Formats a MusicObject's information into a string.
+
+    Arguments:
+    item: MusicObject to be formatted.
+
+    Returns: Formatted string.
+    """
+    if item['kind'] == 'song':
+        return ' - '.join((item['name'], item['artist']))
+    if item['kind'] == 'artist':
+        return item['name']
+    if item['kind'] == 'album':
+        return ' - '.join((item['name'], item['artist']))
+
+    return str(item)
+
+
+def time_from_ms(ms):
+    """
+    Converts milliseconds into mm:ss formatted string.
+
+    Arguments:
+    ms: Number of milliseconds.
+
+    Returns: ms in mm:ss.
+    """
+    ms = int(ms)
+    minutes = str(ms // 60000).zfill(2)
+    seconds = str(ms // 1000 % 60).zfill(2)
+    return "%s:%s" % (minutes, seconds)
+
+
+def trunc(string, chars):
+    """
+    Pads a string with '...' if it is too long to fit in a window.
+
+    Arguments:
+    string: String to be truncated.
+    chars: Max length for the string.
+
+    Returns: The original string if it is short enough to be displayed,
+      otherwise the string truncated and padded with '...'.
+    """
+    if chars < 0 or len(string) <= chars:
+        return string
+    else:
+        return string[:-((len(string) - chars) + 3)] + '...'
+
+
+
+class MusicObject(dict):
+    """A dict representing a song, artist, or album."""
+    def __init__(self, id, name, kind, full):
+        """
+        MusicObject contstructor.
+
+        Arguments:
+        id: Unique item id as determined by gmusicapi.
+        name: Title of song/album or name of artist.
+        kind: Type of object: song, artist, or album.
+        full: Whether or not the item contains all possible information.
+          MusicObjects generated from search() results are not full,
+          MusicObjects generated from get_{track|artist|album_info}() are full.
+        """
+        self['id'] = id
+        self['name'] = name
+        self['kind'] = kind
+        self['full'] = full
+
+    @staticmethod
+    def play(win, songs):
+        """
+        Play some songs.
+
+        Arguments:
+        win: Window on which to display song information.
+        songs: List of songs to play. Songs are tuples following the
+          format (song_string, song_id, song_length).
+
+        Returns: None if all items were played, or the index of the
+          first unplayed item to be used in restoring the queue.
+        """
+        conf_path = '~/.config/pmcli/mpv_input.conf'
+        i = 1
+
+        for song in songs:
+            url = api.get_stream_url(song[0])
+            addstr(win, 'Now playing: %s (%s)' %
+                   (song[1], song[2]))
+
+            if call(
+                    ['mpv', '--really-quiet', '--input-conf', conf_path, url]
+            ) is 11:  # 'q' returns this exit code.
+                return i if i < len(songs) else None
+            i += 1
+
+        return None
+
+
+class Artist(MusicObject):
+    """A dict representing an artist."""
+    def __init__(self, artist, full=False):
+        """
+        Artist constructor.
+
+        Arguments:
+        artist: Dict with artist information from gmusicapi.
+
+        Keyword arguments:
+        full=False: Whether or not the artist's song list is populated.
+        """
+        super().__init__(artist['artistId'], artist['name'], 'artist', full)
+        self['id'] = artist['artistId']
+        self['name'] = artist['name']
+
+        try:
+            self['songs'] = [
+                {
+                    'name': song['title'],
+                    'artist': song['artist'],
+                    'album': song['album'],
+                    'id': song['storeId'],
+                    'time': time_from_ms(song['durationMillis']),
+                    'kind': 'song'
+                } for song in artist['topTracks']
+            ]
+
+        except KeyError:
+            self['songs'] = []
+
+        try:
+            self['albums'] = [
+                {
+                    'name': album['name'],
+                    'artist': album['artist'],
+                    'id': album['albumId'],
+                    'kind': 'album'
+                } for album in artist['albums']
+            ]
+
+        except KeyError:
+            self['albums'] = []
+
+    def collect(self, limit=20):
+        """
+        Collect all of an Artist's information: songs, artist, and albums.
+
+        Keyword arguments:
+        limit=20: Upper limit of each element to collect,
+          determined by terminal height.
+
+        Returns: A dict of lists with keys 'songs, 'artists', and 'albums'.
+        """
+        aggregate = {
+            'songs': [],
+            'artists': [self],
+            'albums': []
+        }
+
+        songs = iter(self['songs'])
+        albums = iter(self['albums'])
+
+        # Create 'limit' of each type.
+        for i in range(limit):
+            try:
+                aggregate['songs'].append(
+                    Song(api.get_track_info(next(songs)['id']))
+                )
+
+            except StopIteration:
+                pass
+
+            try:
+                aggregate['albums'].append(
+                    Album(api.get_album_info(next(albums)['id']))
+                )
+
+            except StopIteration:
+                pass
+
+        return aggregate
+
+    def fill(self, limit):
+        """
+        If an Artist is not full, fill in its song list.
+
+        Arguments:
+        limit: The number of songs to generate, determined by terminal height.
+
+        Returns: A new, full, Artist.
+        """
+        if self['full']:
+            return self
+
+        # Create a new Artist with more information from get_artist_info.
+        self = Artist(api.get_artist_info(
+            self['id'], max_top_tracks=limit), full=True)
+        return self
+
+    def play(self, win):
+        """
+        Play an Artist's song list.
+
+        Arguments:
+        win: Window on which to display song information.
+        """
+        MusicObject.play(
+            win, [(song['id'], to_string(song), song['time'])
+                  for song in self['songs']]
+        )
+
+
+class Album(MusicObject):
+    """A dict representing an album."""
+    def __init__(self, album, full=False):
+        """
+        Album constructor.
+
+        Arguments:
+        artist: Dict with album information from gmusicapi.
+
+        Keyword arguments:
+        full=False: Whether or not the album's song list is populated.
+        """
+        super().__init__(album['albumId'], album['name'], 'album', full)
+        self['artist'] = album['artist']
+        self['artist_ids'] = album['artistId']
+        try:
+            self['songs'] = [
+                {
+                    'name': song['title'],
+                    'artist': song['artist'],
+                    'artist_id': song['artistId'][0],
+                    'album': song['album'],
+                    'id': song['storeId'],
+                    'time': time_from_ms(song['durationMillis']),
+                    'kind': 'song'
+                } for song in album['tracks']
+            ]
+
+        except KeyError:
+            self['songs'] = []
+
+    def collect(self, limit=20):
+        """
+        Collect all of an Album's information: songs, artist, and albums.
+
+        Keyword arguments:
+        limit=20: Upper limit of each element to collect,
+          determined by terminal height.
+
+        Returns: A dict of lists with keys 'songs, 'artists', and 'albums'.
+        """
+        aggregate = {
+            'songs': [],
+            'artists': [
+                Artist(api.get_artist_info(id)) for id in self['artist_ids']
+            ],
+            'albums': [self],
+        }
+
+        songs = iter(self['songs'])
+
+        # Create 'limit' of each type.
+        for i in range(limit):
+            try:
+                aggregate['songs'].append(
+                    Song(api.get_track_info(next(songs)['id']))
+                )
+
+            except StopIteration:
+                pass
+
+        return aggregate
+
+    def fill(self, limit=0):
+        """
+        If an Album is not full, fill in its song list.
+
+        Arguments:
+        limit: Irrelevant, we always generate all songs.
+
+        Returns: A new, full, Album.
+        """
+        if self['full']:
+            return self
+
+        # Create a new Album with more information from get_album_info.
+        self = Album(api.get_album_info(self['id']), full=True)
+        return self
+
+    def play(self, win):
+        """
+        Play an Album's song list.
+
+        Arguments:
+        win: Window on which to display song information.
+        """
+        MusicObject.play(
+            win, [(song['id'], to_string(song), song['time'])
+                  for song in self['songs']]
+        )
+
+
+class Song(MusicObject):
+    """A dict representing a song."""
+    def __init__(self, song, full=True, json=False):
+        """
+        Song constructor.
+
+        Arguments:
+        song: Dict with song information from gmusicapi.
+
+        Keyword arguments:
+        full=True: A song is always considered full.
+        json=False: Whether or not the song is being initialized from JSON.
+        """
+        if not json:
+            super().__init__(song['storeId'], song['title'], 'song', full)
+            self['artist'] = song['artist']
+            self['artist_ids'] = song['artistId']
+            self['album'] = song['album']
+            self['album_id'] = song['albumId']
+            self['time'] = time_from_ms(song['durationMillis'])
+        else:
+            super().__init__(song['id'], song['name'], 'song', full)
+            self['artist'] = song['artist']
+            self['artist_ids'] = song['artist_ids']
+            self['album'] = song['album']
+            self['album_id'] = song['album_id']
+            self['time'] = song['time']
+
+    @staticmethod
+    def verify(item):
+        """
+        Make sure a dict contains all necessary song data.
+
+        Arguments:
+        item: The dict being checked.
+
+        Returns: Whether or not the item contains all necessary data.
+        """
+        return ('id' in item and 'name' in item and 'kind' in item and
+                'full' in item and 'artist' in item and 'artist_ids' in item
+                and 'album' in item and 'album_id' in item and 'time' in item)
+
+    def collect(self, limit=None):
+        """
+        Collect all of a Song's information: songs, artist, and albums.
+
+        Keyword arguments:
+        limit=None: Irrelevant.
+
+        Returns: A dict of lists with keys 'songs, 'artists', and 'albums'.
+        """
+        return {
+            'songs': [self],
+            'artists': [
+                Artist(api.get_artist_info(id)) for id in self['artist_ids']
+            ],
+            'albums': [Album(api.get_album_info(self['album_id']))]
+        }
+
+    def fill(self, limit=0):
+        """
+        All songs are already 'full'.
+
+        Keyword arguments:
+        limit=0: Irrelevant.
+
+        Returns: self.
+        """
+        return self
+
+    def play(self, win):
+        """
+        Play a Song.
+
+        Arguments:
+        win: Window on which to display song information.
+        """
+        MusicObject.play(win, [(self['id'], to_string(self), self['time'])])
+
+
+class Queue(list):
+    """A queue of songs to be played."""
+    def __init__(self):
+        """Queue constructor."""
+        super().__init__(self)
+        self.ids = []
+
+    def append(self, item):
+        """
+        Add an element to the queue.
+
+        Arguments:
+        item: item to be added. This can be a song or album.
+          In the case of albums, each song is appended one by one.
+        """
+        if item['kind'] == 'album':
+            for song in item['songs']:
+                super().append(Song(api.get_track_info(song['id'])))
+                self.ids.append(song['id'])
+            # Todo: deal with properly removing album ids.
+            self.ids.append(item['id'])
+
+        else:
+            super().append(item.fill())
+            self.ids.append(item['id'])
+
+    def extend(self, items):
+        """
+        Add all elements in some iterable to the queue.
+
+        Arguments:
+        items: iterable of songs and/or albums to be added one after another.
+        """
+        for item in items:
+            self.append(item)
+
+    def clear(self):
+        """Empty the queue."""
+        del self[:]
+        del self.ids[:]
+
+    def shuffle(self):
+        """Shuffle the queue."""
+        del self.ids[:]
+        songs = [self.pop(0) for i in range(len(self))]
+        del self[:]
+        shuffle(songs)
+        self.extend(songs)
+
+    def collect(self, s=False):
+        """
+        Collect all of a Queue's information: songs, artist, and albums.
+
+        Keyword arguments:
+        s=False: Whether or not the queue is shuffled..
+
+        Returns: A dict with key 'songs'.
+        """
+        songs = {'songs': [item for item in self]} if len(self) > 0 else None
+        if s and songs is not None:
+            shuffle(songs['songs'])
+        return songs
+
+    def play(self, win):
+        """
+        Play the queue.
+
+        Arguments:
+        win: Window on which to display song information.
+        """
+        songs = [(song['id'], to_string(song), song['time']) for song in self]
+
+        # Save the queue contents to restore unplayed items.
+        cache = []
+        for i in range(len(songs)):
+            cache.append(self.pop(0))
+        del self.ids[:]
+
+        index = MusicObject.play(win, songs)
+        addstr(win, 'Now playing: None')
+
+        for item in cache[index:]:
+            self.append(item)
+            self.ids.append(item['id'])
+
+
+
+
+
+
+
+
 if __name__ == '__main__':
     colour, main, inbar, infobar, outbar = initialize()
     addstr(infobar, 'Enter \'h\' or \'help\' if you need help.')
@@ -500,3 +1222,4 @@ if __name__ == '__main__':
 
     while True:
         transition(get_input())
+
