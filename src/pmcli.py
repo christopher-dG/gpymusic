@@ -40,11 +40,10 @@ class MusicObject(dict):
         Play some songs.
 
         Arguments:
-        songs: List of songs to play. Songs are tuples following the
-          format (song_string, song_id, song_length).
+        songs: List of songs to play.
 
-        Returns: None if all items were played, or the index of the
-          first unplayed item to be used in restoring the queue.
+        Returns: None if all songs were played, or the index of the
+          first unplayed song to be used in restoring the queue.
         """
         conf_path = join(expanduser('~'), '.config', 'pmcli', 'mpv_input.conf')
         if not exists(conf_path):
@@ -88,7 +87,7 @@ class Artist(MusicObject):
 
     def collect(self, limit=20):
         """
-        Collect all of an Artist's information: songs, artist, and albums.
+        Collect all of an artist's information: songs, artist, and albums.
 
         Keyword arguments:
         limit=20: Upper limit of each element to collect,
@@ -104,7 +103,7 @@ class Artist(MusicObject):
 
     def fill(self, limit):
         """
-        If an Artist is not full, fill in its song list.
+        If an artist is not full, fill in its song list.
 
         Arguments:
         limit: The number of songs to generate, determined by terminal height.
@@ -114,21 +113,20 @@ class Artist(MusicObject):
         if self['full']:
             return self
 
-        # Create a new Artist with more information from get_artist_info.
         self = Artist(api.get_artist_info(
             self['id'], max_top_tracks=limit), full=True)
         return self
 
     def to_string(self):
         """
-        Format an Artist into a string.
+        Format an artist into a string.
 
         Returns: The artist name.
         """
         return self['name']
 
     def play(self):
-        """Play an Artist's song list."""
+        """Play an artist's song list."""
         MusicObject.play(self['songs'])
 
 
@@ -154,7 +152,7 @@ class Album(MusicObject):
 
     def collect(self, limit=20):
         """
-        Collect all of an Album's information: songs, artist, and albums.
+        Collect all of an album's information: songs, artist, and albums.
 
         Keyword arguments:
         limit=20: Upper limit of each element to collect,
@@ -170,7 +168,7 @@ class Album(MusicObject):
 
     def fill(self, limit=0):
         """
-        If an Album is not full, fill in its song list.
+        If an album is not full, fill in its song list.
 
         Arguments:
         limit: Irrelevant, we always generate all songs.
@@ -180,19 +178,18 @@ class Album(MusicObject):
         if self['full']:
             return self
 
-        # Create a new Album with more information from get_album_info.
         self = Album(api.get_album_info(self['id']), full=True)
         return self
 
     def to_string(self):
-        """Format an Album into a string.
+        """Format an album into a string.
 
         Returns: The album name and artist.
         """
         return ' - '.join((self['name'], self['artist']['name']))
 
     def play(self):
-        """Play an Album's song list."""
+        """Play an album's song list."""
         MusicObject.play(self['songs'])
 
 
@@ -203,7 +200,7 @@ class Song(MusicObject):
         Song constructor.
 
         Arguments:
-        song: Dict with song information from gmusicapi.
+        song: Dict with a song's information.
 
         Keyword arguments:
         full=True: A song is always considered full.
@@ -220,13 +217,11 @@ class Song(MusicObject):
                 'artist': song['artist'], 'artistId': song['artistId'],
             })
             self['time'] = Song.time_from_ms(song['durationMillis'])
-        elif source == 'json':  # Initializing from JSON
+        elif source == 'json':  # Initializing from JSON.
             super().__init__(song['id'], song['name'], 'song', full)
             self['artist'] = song['artist']
             self['album'] = song['album']
             self['time'] = song['time']
-        else:
-            raise TypeError('Initializing Song from bad type.')
 
     @staticmethod
     def verify(item):
@@ -236,7 +231,7 @@ class Song(MusicObject):
         Arguments:
         item: The dict being checked.
 
-        Returns: Whether or not the item contains all necessary data.
+        Returns: Whether or not the item contains sufficient data.
         """
         return ('id' in item and 'name' in item and 'kind' in item and
                 'full' in item and 'artist' in item and 'album' in item
@@ -245,7 +240,7 @@ class Song(MusicObject):
     @staticmethod
     def time_from_ms(ms):
         """
-        Converts milliseconds into mm:ss formatted string.
+        Converts milliseconds into a mm:ss formatted string.
 
         Arguments:
         ms: Number of milliseconds.
@@ -259,7 +254,7 @@ class Song(MusicObject):
 
     def collect(self, limit=None):
         """
-        Collect all of a Song's information: songs, artist, and albums.
+        Collect all of a song's information: songs, artist, and albums.
 
         Keyword arguments:
         limit=None: Irrelevant.
@@ -274,7 +269,7 @@ class Song(MusicObject):
 
     def fill(self, limit=0):
         """
-        All songs are already 'full'.
+        Do nothing. All songs are already 'full'.
 
         Keyword arguments:
         limit=0: Irrelevant.
@@ -284,49 +279,42 @@ class Song(MusicObject):
         return self
 
     def to_string(self):
+        """
+        Format a song into a string.
+
+        Returns: The song title, artist name, and album name.
+        """
         return ' - '.join((self['name'], self['artist']['name']))
 
     def play(self):
-        """Play a Song."""
+        """Play a song."""
         MusicObject.play([self])
 
 
 class Queue(list):
-    """
-    A queue of songs to be played. Duplicate songs are not
-    allowed in the queue.
-    """
+    """A queue of songs to be played."""
     def __init__(self):
         """Queue constructor."""
         super().__init__(self)
-        self.ids = []
 
     def append(self, item):
         """
-        Add an element to the queue if it is not already in the queue.
+        Add an element to the queue.
 
         Arguments:
         item: item to be added. This can be a song or album.
           In the case of albums, each song is appended one by one.
-          Songs are inserted in order, but certain songs may be
-          skipped if they are already in the queue.
 
-        Returns: Number of songs that were successfully added.
+        Returns: Number of songs that were added.
         """
-        count = 0
         if item['kind'] == 'album':
-            for song in item['songs']:
-                if song['id'] not in self.ids:
-                    super().append(song)
-                    self.ids.append(song['id'])
-                    count += 1
+            super().extend(item['songs'])
+            return len(item['songs'])
+        elif item['kind'] == 'song':
+            super().append(item)
+            return 1
         else:
-            if item['id'] not in self.ids:
-                super().append(item)
-                self.ids.append(item['id'])
-                count += 1
-
-        return count
+            raise TypeError('Adding invalid type to queue.')
 
     def extend(self, items):
         """
@@ -338,47 +326,29 @@ class Queue(list):
 
         Returns: number of songs that were successfully inserted.
         """
-        count = 0
-        for item in items:
-            count += self.append(item)
-
-        return count
+        return sum([self.append(item) for item in items])
 
     def clear(self):
         """Empty the queue."""
         del self[:]
-        del self.ids[:]
 
-    def shuffle(self):
-        """Shuffle the queue."""
-        songs = [self.pop(0) for i in range(len(self))]
-        del self[:]
-        del self.ids[:]
-        shuffle(songs)
-        self.extend(songs)
-
-    def collect(self, s=False):
+    def collect(self, limit=-1):
         """
         Collect all of a Queue's information: songs, artist, and albums.
 
         Keyword arguments:
-        s=False: Whether or not the queue is shuffled..
+        limit=-1: Max number of queue items to display, determined by
+          terminal height.
 
         Returns: A dict with key 'songs'.
         """
-        songs = {'songs': self} if len(self) > 0 else None
-        if s and songs is not None:
-            shuffle(songs['songs'])
-
-        return songs
+        return self[:]
+        # return self[:min(limit, len(self)) if limit != -1 else len(self)]
 
     def play(self):
-        """Play the queue."""
-
-        # Save the queue contents to restore unplayed items.
+        """Play the queue. If playback is halted, restore unplayed items."""
         cache = self[:]
         del self[:]
-        del self.ids[:]
         index = MusicObject.play(cache)
         out.now_playing()
         self.extend(cache[index:])
@@ -477,7 +447,7 @@ class CrsWriter():
             return
 
         self.addstr(
-            outbar, 'Error: ' + msg + ' Enter \'h\' or \'help\' for help.')
+            self.outbar, 'Error: %s. Enter \'h\' or \'help\' for help.' % msg)
 
     def welcome(self):
         self.main.addstr(5, int(crs.COLS/2) - 9, 'Welcome to pmcli!')
@@ -512,11 +482,11 @@ class CrsWriter():
         crs.curs_set(2)  # Show the cursor.
 
         try:
-            string = inbar.getstr()
+            string = out.inbar.getstr()
         except KeyboardInterrupt:
             self.goodbye('Goodbye, thanks for using pmcli!')
 
-        inbar.deleteln()
+        out.inbar.deleteln()
         crs.curs_set(0)  # Hide the cursor.
 
         return string.decode('utf-8')
@@ -531,7 +501,7 @@ class CrsWriter():
         if self.disable:
             return
 
-        self.addstr(outbar, msg)
+        self.addstr(self.outbar, msg)
 
     def display(self):
         """Update the main window with some content."""
@@ -571,7 +541,7 @@ class CrsWriter():
         self.main.erase()
         y, i = 0, 1  # y coordinate in main window, current item index.
         (i_ch, n_ch, ar_ch, al_ch, n_start,
-         ar_start, al_start) = measure_fields(main.getmaxyx()[1])
+         ar_start, al_start) = measure_fields(out.main.getmaxyx()[1])
 
         if 'songs' in content and content['songs']:  # Songs header.
             self.main.addstr(
@@ -696,7 +666,7 @@ def transition(input):
         if content is not None:
             out.display()
     else:
-        out.error_msg('Nonexistent command.')
+        out.error_msg('Nonexistent command')
 
 
 def get_option(num, limit=-1):
@@ -714,7 +684,7 @@ def get_option(num, limit=-1):
     """
     total = sum([len(content[k]) for k in content.keys()])
     if num < 0 or num > total:
-        out.error_msg('Index out of range: valid between 1-%d.' % total)
+        out.error_msg('Index out of range: valid between 1-%d' % total)
         return None
 
     i = 1
@@ -728,7 +698,7 @@ def get_option(num, limit=-1):
 
 def enqueue(arg=None):
     """
-    Display the current queue, or add an item to the queue. Can update content.
+    Display the current queue, or add an item to the queue. Can change content.
 
     Keyword arguments:
     arg=None: Index of the MusicObject in the main window to add to
@@ -739,13 +709,17 @@ def enqueue(arg=None):
 
     if arg is None:
         if not queue:  # Nothing to display.
-            out.error_msg('The queue is empty.')
+            out.error_msg('The queue is empty')
 
         else:  # Display the queue.
-            content = queue.collect()
+            if not out.disable:
+                limit = out.main.getmaxyx()[0]
+            else:
+                limit = -1
+            content = queue.collect(limit)
 
     elif content is None:  # Nothing to queue.
-        out.error_msg('Wrong context for queue.')
+        out.error_msg('Wrong context for queue')
 
     else:
         if arg is 'c':  # Clear the queue.
@@ -760,12 +734,12 @@ def enqueue(arg=None):
                 try:  # Check for multi-option argument.
                     nums = [int(i) for i in arg.split()]
                 except ValueError:  # Invalid argument.
-                    out.error_msg('Invalid argument to queue.')
+                    out.error_msg('Invalid argument to queue')
                 else:  # Add all arguments to the queue.
                     items = [get_option(num) for num in nums]
                     count = queue.extend(
                         [item for item in items if item is not None])
-                    out.outbar_msg('Added %d songs%s to the queue.' %
+                    out.outbar_msg('Added %d song%s to the queue.' %
                                    (count, '' if count == 1 else 's'))
 
             else:
@@ -773,7 +747,7 @@ def enqueue(arg=None):
                 if item is not None:
                     if item['kind'] == 'artist':  # Artists can't be queued.
                         out.error_msg(
-                            'Can only add songs or albums to the queue.')
+                            'Can only add songs or albums to the queue')
                     else:
                         queue.append(item)
                         out.outbar_msg('Added \'%s\' to the queue.' %
@@ -791,21 +765,21 @@ def expand(num=None):
     global content
 
     if num is None:  # No argument.
-        out.error_msg('Missing argument to play.')
+        out.error_msg('Missing argument to play')
     elif content is None:  # Nothing to expand.
         out.error_msg('Wrong context for expand.')
     else:
         try:
             num = int(num)
         except ValueError:  # num needs to be an int.
-            out.error_msg('Invalid argument to play.')
+            out.error_msg('Invalid argument to play')
         else:
             if out.disable:
                 limit = -1
             else:
                 # Artists only have one artist and albums only have one album,
                 # so we can allocate more space for the other fields.
-                limit = int((main.getmaxyx()[0] - 9)/2)
+                limit = int((out.main.getmaxyx()[0] - 9)/2)
             opt = get_option(num, limit)
 
             if opt is not None:  # Valid input.
@@ -827,7 +801,7 @@ def help(arg=0):
         return
 
     # Don't use generic addstr() because we don't want to call trunc() here.
-    main.erase()
+    out.main.erase()
     out.main.addstr(
         """
         Commands:
@@ -861,10 +835,10 @@ def play(arg=None):
 
     if arg is None or arg is 's':
         if not queue:  # Can't play an empty queue.
-            out.error_msg('The queue is empty.')
+            out.error_msg('The queue is empty')
         else:  # Play the queue.
             if arg is 's':  # Shuffle.
-                queue.shuffle()
+                shuffle(queue)
             content = queue.collect()
             out.display()
             out.outbar_msg(
@@ -873,12 +847,12 @@ def play(arg=None):
             out.erase_outbar()
 
     elif content is None:  # Nothing to play.
-        out.error_msg('Wrong context for play.')
+        out.error_msg('Wrong context for play')
     else:
         try:
             num = int(arg)
         except ValueError:  # arg needs to be an int if it isn't 's'.
-            out.error_msg('Invalid argument to play.')
+            out.error_msg('Invalid argument to play')
         else:
             opt = get_option(num)
 
@@ -886,7 +860,7 @@ def play(arg=None):
                 out.outbar_msg(
                     '[spc] pause [q] stop [n] next [9-0] volume [arrows] seek')
                 opt.play()
-                out.addstr(infobar, 'Now playing: None')
+                out.now_playing()
                 out.erase_outbar()
 
 
@@ -900,16 +874,16 @@ def restore(fn=None):
     """
     path = join(expanduser('~'), '.local', 'share', 'pmcli', 'playlists')
     if fn is None:  # No argument.
-        out.error_msg('Missing argument to restore.')
+        out.error_msg('Missing argument to restore')
     elif not exists(join(path, fn)):  # Playlist file doesn't exist.
-        out.error_msg('Playlist %s does not exist.' % fn)
+        out.error_msg('Playlist %s does not exist' % fn)
     else:
         out.outbar_msg('Restoring queue from %s...' % fn)
         try:  # Read the playlist.
             with open(join(path, fn)) as f:
                 json_songs = json.load(f)
         except json.decoder.JSONDecodeError:  # Bad file.
-            out.error_msg('%s is not a valid playlist file.' % fn)
+            out.error_msg('%s is not a valid playlist file' % fn)
         else:
             songs = [Song(song, source='json')
                      for song in json_songs if song.verify()]
@@ -934,12 +908,12 @@ def search(query=None):
     global content
 
     if query is None:  # No argument.
-        out.error_msg('Missing search query.')
+        out.error_msg('Missing search query')
         return
 
     # Fetch as many results as we can display depending on terminal height.
     if not out.disable:
-        limit = int((main.getmaxyx()[0] - 3)/3)
+        limit = int((out.main.getmaxyx()[0] - 3)/3)
     else:
         limit = 50
 
@@ -996,13 +970,13 @@ def write(fn=None):
     """
     path = join(expanduser('~'), '.local', 'share', 'pmcli', 'playlists')
     if not queue:  # Can't save an empty queue.
-        out.error_msg('Queue is empty.')
+        out.error_msg('Queue is empty')
     elif fn is None:  # No argument.
-        out.error_msg('Missing argument to write.')
+        out.error_msg('Missing argument to write')
     elif not exists(path):  # No playlists directory.
-        out.error_msg('Path to playlists does not exist.')
+        out.error_msg('Path to playlists does not exist')
     elif exists(join(path, fn)):  # Playlist alreadt exists at path/fn.
-        out.error_msg('Playist %s already exists.' % fn)
+        out.error_msg('Playist %s already exists' % fn)
     else:  # Write the playlist.
         with open(join(path, fn), 'a') as f:
             json.dump(queue, f)
@@ -1052,10 +1026,10 @@ def set_colours(colours):
 
     # Set colours.
     crs.start_color()
-    main.bkgdset(' ', crs.color_pair(1))
-    inbar.bkgdset(' ', crs.color_pair(1))
-    infobar.bkgdset(' ', crs.color_pair(2))
-    outbar.bkgdset(' ', crs.color_pair(4))
+    out.main.bkgdset(' ', crs.color_pair(1))
+    out.inbar.bkgdset(' ', crs.color_pair(1))
+    out.infobar.bkgdset(' ', crs.color_pair(2))
+    out.outbar.bkgdset(' ', crs.color_pair(4))
 
 
 def validate_config(config):
@@ -1107,7 +1081,7 @@ def password(config):
                 out.goodbye('Exiting.')
         else:
             crs.noecho()  # Don't show the password as it's entered.
-            out.addstr(inbar, 'Enter your password: ')
+            out.addstr(out.inbar, 'Enter your password: ')
             try:
                 config['user']['password'] = out.inbar.getstr().decode('utf-8')  # noqa
             except KeyboardInterrupt:
@@ -1174,11 +1148,11 @@ def login(user):
     Arguments:
     user: Dict containing auth information.
     """
-    out.addstr(outbar, 'Logging in...')
+    out.outbar_msg('Logging in...')
     if not api.login(user['email'], user['password'], user['deviceid']):
         out.goodbye('Login failed: Exiting.')
-    out.addstr(outbar, 'Logging in... Logged in as %s (%s).' %
-               (user['email'], 'Full' if api.is_subscribed else 'Free'))
+    out.outbar_msg('Logging in... Logged in as %s (%s).' %
+                   (user['email'], 'Full' if api.is_subscribed else 'Free'))
 
 
 api = Mobileclient()  # Our interface to Google Music.
@@ -1188,8 +1162,7 @@ out = CrsWriter(main, inbar, infobar, outbar, disable=True)
 
 
 if __name__ == '__main__':
-    main, inbar, infobar, outbar = get_windows()
-    out = CrsWriter(main, inbar, infobar, outbar)
+    out = CrsWriter(*get_windows())
     out.welcome()
     config = password(read_config())
     colour = validate_config(config)
@@ -1197,7 +1170,7 @@ if __name__ == '__main__':
         set_colours(config['colour'])
         out.colour = True
     login(config['user'])
-    out.addstr(infobar, 'Enter \'h\' or \'help\' if you need help.')
+    out.addstr(out.infobar, 'Enter \'h\' or \'help\' if you need help.')
     queue = Queue()
     global content
     content = None
