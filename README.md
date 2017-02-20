@@ -11,23 +11,12 @@ As of right now, pmcli only works for users with paid accounts (see [issue #5](h
 
 - [Python 3](https://python.org/downloads/)
 - [mpv](https://mpv.io)
-- [gmusicapi](https://github.com/simon-weber/gmusicapi): 
-- `pip install gmusicapi` 
+- [gmusicapi](https://github.com/simon-weber/gmusicapi): `pip install gmusicapi` 
 -- Note: If you have both Python 2 and Python 3 installed, specify Python 3 by using: `pip3 install gmusicapi`.
 
-## Installing, updating, & uninstalling
+## Installing, updating and uninstalling
 
-Use the included `.sh` scripts to install, update or remove the program.
-
-## Password
-
-You can choose to leave the password field empty as it is in `config.example`, and you will be prompted for it upon starting the program. Otherwise, you can supply it for automatic logins.
-
-**If you store your password in plain text, be aware the potential consequences.**
-
-## Device ID
-
-If you don't know your device ID, run `python get_dev_id.py` and answer the prompts to generate a list of valid device IDs.
+Use the `.sh` scripts in `script` to install, update or remove the program.
 
 ## Running pmcli
 
@@ -61,9 +50,19 @@ When playing music:
 
 ## Colours
 
-Colour themes are defined in the `[colour]` section of your config file. To enable colour, make sure `enable` is set to `yes` and set the fields to hex colours as desired. `highlight` affects the section headers and 'now playing' output, `content{1|2}` affect the main window, and `background` and `foreground` are self-explanatory.
+Colour themes are defined in the `colour` section of your config file. To enable colour, make sure `enable` is set to `yes` and set the fields to hex colours as desired. `highlight` affects the section headers and 'now playing' output, `content{1|2}` affect the main window, and `background` and `foreground` are self-explanatory.
 
 Note: Upon exiting the program, your terminal colours will likely be modified. Just open a new terminal session and your colours will be back to normal.
+
+## Device ID
+
+If you don't know your device ID, run `script/get_dev_id.py` and answer the prompts to generate a list of valid device IDs.
+
+## Password
+
+You can choose to leave the password field empty as it is in `config.example`, and you will be prompted for it upon starting the program. Otherwise, you can supply it for automatic logins.
+
+**If you store your password in plain text, be aware the potential consequences.**
 
 ## 2-Factor Authentication
 
@@ -71,7 +70,7 @@ If your account has 2FA set up, you will need to use an [app password](https://s
 
 ## Crashes
 
-If `pmcli` crashes, your terminal settings will likely be messed up, in which case enter `stty sane` to restore order. And don't forget to file an issue!
+If `pmcli` crashes, your terminal settings will likely be messed up, in which case `stty sane` will restore order. Don't forget to file an issue!
 
 ### Disclaimer
 Expect bugs, and please report them! I hope you enjoy using pmcli, and if you don't, that's okay too because I enjoy working on it.

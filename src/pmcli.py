@@ -9,7 +9,7 @@ from util import (
 )
 import warnings
 
-warnings.filterwarnings("ignore")  # Todo: Something better.
+warnings.filterwarnings('ignore')
 
 
 def transition(input):
