@@ -2,9 +2,9 @@
 
 from getpass import getpass
 from gmusicapi import Mobileclient
-import warnings
+from warnings import filterwarnings
 
-warnings.filterwarnings('ignore')
+filterwarnings('ignore')
 
 # Try to print out some valid device IDs.
 if __name__ == '__main__':
