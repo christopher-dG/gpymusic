@@ -432,33 +432,38 @@ class Library():
           stations that a user has saved on Google Play Music. This will
           take a long time, scaling linearly with a user's library size.
         """
+
+        # There is so much weird stuff that can go wrong here, so just
+        # skip any elements that raise exceptions/errors.
+
         library = {'songs': [], 'artists': [], 'albums': []}
-        # Rather than use sets, we keep lists of ids so we can determine
-        # duplicates before calling fill(), saving us a ton of API calls.
         ids = {'songs': [], 'artists': [], 'albums': []}
         out.outbar_msg('Generating library. This will take a while...')
+        out.addstr(out.infobar('pmcli will quit when finished, restart to '
+                               'load your library.'))
 
         # Songs.
         for song in api.get_all_songs():
             try:
                 if song['storeId'] not in ids['songs']:
                     s = Song(song)
-            except KeyError:
+                    s['artist'].fill()
+                    s['album'].fill()
+            except:
                 continue
             else:
-                s['artist'].fill()
-                s['album'].fill()
-                library['songs'].append(s)
-                library['artists'].append(s['artist'])
-                library['albums'].append(s['album'])
-                ids['songs'].append(s['id'])
-                ids['artists'].append(s['artist']['id'])
-                ids['albums'].append(s['album']['id'])
-
-        # There is so much weird stuff that can go wrong in the next part.
-        # so just catch everything.
+                if s['id'] not in ids['songs']:
+                    library['songs'].append(s)
+                    ids['songs'].append(s['id'])
+                if s['artist']['id'] not in ids['artists']:
+                    library['artists'].append(s['artist'])
+                    ids['artists'].append(s['artist']['id'])
+                if s['album']['id'] not in ids['albums']:
+                    library['albums'].append(s['album'])
+                    ids['albums'].append(s['album']['id'])
 
         # Radio stations.
+        # Todo: A better comprehension for this.
         s_ids = [s['id'] for s in api.get_all_stations()]
         for id in s_ids:
             try:
@@ -472,15 +477,18 @@ class Library():
                             s = Song(song)
                             s['artist'].fill()
                             s['album'].fill()
-                    except KeyError:
+                    except:
                         continue
                     else:
-                        library['songs'].append(s)
-                        library['artists'].append(s['artist'])
-                        library['albums'].append(s['album'])
-                        ids['songs'].append(s['id'])
-                        ids['artists'].append(s['artist']['id'])
-                        ids['albums'].append(s['album']['id'])
+                        if s['id'] not in ids['songs']:
+                            library['songs'].append(s)
+                            ids['songs'].append(s['id'])
+                        if s['artist']['id'] not in ids['artists']:
+                            library['artists'].append(s['artist'])
+                            ids['artists'].append(s['artist']['id'])
+                        if s['album']['id'] not in ids['albums']:
+                            library['albums'].append(s['album'])
+                            ids['albums'].append(s['album']['id'])
 
         # Playlists.
         for song in [playlist['tracks']
@@ -490,15 +498,19 @@ class Library():
                     s = Song(song)
                     s['artist'].fill()
                     s['album'].fill()
-            except KeyError:
+            except:
                 continue
             else:
-                library['songs'].append(s)
-                library['artists'].append(s['artist'])
-                library['albums'].append(s['album'])
-                ids['songs'].append(s['id'])
-                ids['artists'].append(s['artist']['id'])
-                ids['albums'].append(s['album']['id'])
+                if s['id'] not in ids['songs']:
+                    library['songs'].append(s)
+                    ids['songs'].append(s['id'])
+                if s['artist']['id'] not in ids['artists']:
+                    library['artists'].append(s['artist'])
+                    ids['artists'].append(s['artist']['id'])
+                if s['album']['id'] not in ids['albums']:
+                    library['albums'].append(s['album'])
+                    ids['albums'].append(s['album']['id'])
+
         # I'm too tired to think of a nifty comprehension for this one.
         tokens = [p['shareToken'] for p in api.get_all_playlists()
                   if p['type'] == 'SHARED']
@@ -510,15 +522,18 @@ class Library():
                         s = Song(song)
                         s['artist'].fill()
                         s['album'].fill()
-                except KeyError:
+                except:
                     continue
                 else:
-                    library['songs'].append(s)
-                    library['artists'].append(s['artist'])
-                    library['albums'].append(s['album'])
-                    ids['songs'].append(s['id'])
-                    ids['artists'].append(s['artist']['id'])
-                    ids['albums'].append(s['album']['id'])
+                    if s['id'] not in ids['songs']:
+                        library['songs'].append(s)
+                        ids['songs'].append(s['id'])
+                    if s['artist']['id'] not in ids['artists']:
+                        library['artists'].append(s['artist'])
+                        ids['artists'].append(s['artist']['id'])
+                    if s['album']['id'] not in ids['albums']:
+                        library['albums'].append(s['album'])
+                        ids['albums'].append(s['album']['id'])
 
         for k in library:
             library[k] = list(library[k])
@@ -530,6 +545,9 @@ class Library():
         out.outbar_msg('Generated %d songs, %d artists, and %d albums.' %
                        tuple(len(library[k])
                              for k in ('songs', 'artists', 'albums')))
+        out.addstr(out.infobar('Exiting.'))
+        sleep(2)
+        sys.exit()
 
     def load_library(self):
         """
