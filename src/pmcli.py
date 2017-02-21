@@ -696,9 +696,7 @@ def transition(input):
         'search': search,
         'p': play,
         'play': play,
-        'q': 
-        
-      ,
+        'q': enqueue,
         'queue': enqueue,
         'w': write,
         'write': write,
