@@ -696,7 +696,9 @@ def transition(input):
         'search': search,
         'p': play,
         'play': play,
-        'q': enqueue,
+        'q': 
+        
+      ,
         'queue': enqueue,
         'w': write,
         'write': write,
@@ -763,7 +765,7 @@ def enqueue(arg=None):
 
         else:  # Display the queue.
             if out.curses:
-                limit = out.main.getmaxyx()[0] - 1  # Allow room for header.
+                limit = out.main.getmaxyx()[0] - 2  # Allow room for header.
             else:
                 limit = -1
             if queue:
