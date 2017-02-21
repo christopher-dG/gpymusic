@@ -2,6 +2,7 @@
 
 import curses as crs
 import json
+import sys
 from gmusicapi import Mobileclient
 from os.path import exists, expanduser, join, isfile, basename
 from random import shuffle
@@ -17,7 +18,7 @@ filterwarnings('ignore')
 # -------------------- MUSIC OBJECT CLASSES START -------------------- #
 
 class MusicObject(dict):
-    """A dict representing a song, artist, or album."""
+    """A dict representing a song, articlasst, or album."""
     def __init__(self, id, name, kind, full):
         """
         Assign to fields common to Songs, Artists, and Albums.
@@ -63,10 +64,14 @@ class MusicObject(dict):
 
         return None
 
+    def __hash__(self):
+        """Use ID to hash."""
+        return sum(ord(c) for c in self['id'])
+
 
 class Artist(MusicObject):
     """A dict representing an artist."""
-    def __init__(self, artist, full=False):
+    def __init__(self, artist, full=False, source='api'):
         """
         # Create a new Artist.
 
@@ -75,16 +80,37 @@ class Artist(MusicObject):
 
         Keyword arguments:
         full=False: Whether or not the artist's song list is populated.
+        source='api': The source of the argument dict, which changes how
+          we initialize the artist.
         """
-        super().__init__(artist['artistId'], artist['name'], 'artist', full)
-        try:
-            self['songs'] = [Song(s) for s in artist['topTracks']]
-        except KeyError:
-            self['songs'] = []
-        try:
-            self['albums'] = [Album(a) for a in artist['albums']]
-        except KeyError:
-            self['albums'] = []
+        if source == 'api':
+            super().__init__(artist['artistId'], artist['name'], 'artist', full)  # noqa
+            try:
+                self['songs'] = [Song(s) for s in artist['topTracks']]
+            except KeyError:
+                self['songs'] = []
+            try:
+                self['albums'] = [Album(a) for a in artist['albums']]
+            except KeyError:
+                self['albums'] = []
+
+        elif source == 'json':
+            super().__init__(artist['id'], artist['name'], 'artist', full)
+            self['songs'] = artist['songs']
+            self['albums'] = artist['albums']
+
+    @staticmethod
+    def verify(item):
+        """
+        Make sure a dict contains all necessary artist data.
+
+        Arguments:
+        item: The dict being checked.
+
+        Returns: Whether or not the item contains sufficient data.
+        """
+        return all(k in item for k in
+                   ('id', 'name', 'kind', 'full', 'songs', 'albums'))
 
     def __str__(self):
         """
@@ -96,6 +122,8 @@ class Artist(MusicObject):
 
     def play(self):
         """Play an artist's song list."""
+        if not self['full']:
+            self.fill()
         MusicObject.play(self['songs'])
 
     def collect(self, limit=20):
@@ -114,26 +142,26 @@ class Artist(MusicObject):
             'albums': self['albums'][:min(len(self['albums']), limit)]
         }
 
-    def fill(self, limit):
+    def fill(self, limit=100):
         """
         If an artist is not full, fill in its song list.
 
         Arguments:
         limit: The number of songs to generate, determined by terminal height.
-
-        Returns: A new, full, Artist.
         """
         if self['full']:
-            return self
+            return
 
-        self = Artist(api.get_artist_info(
-            self['id'], max_top_tracks=limit), full=True)
-        return self
+        self['songs'] = [
+            Song(song) for song in
+            api.get_artist_info(self['id'], max_top_tracks=limit)['topTracks']
+        ]
+        self['full'] = True
 
 
 class Album(MusicObject):
     """A dict representing an album."""
-    def __init__(self, album, full=False):
+    def __init__(self, album, full=False, source='api'):
         """
         Create a new Album
 
@@ -142,14 +170,35 @@ class Album(MusicObject):
 
         Keyword arguments:
         full=False: Whether or not the album's song list is populated.
+        source='api': The source of the argument dict, which changes how
+          we initialize the album.
         """
-        super().__init__(album['albumId'], album['name'], 'album', full)
-        self['artist'] = Artist({
-            'artistId': album['artistId'][0], 'name': album['artist']})
-        try:
-            self['songs'] = [Song(s) for s in album['tracks']]
-        except KeyError:
-            self['songs'] = []
+        if source == 'api':
+            super().__init__(album['albumId'], album['name'], 'album', full)
+            self['artist'] = Artist({
+                'artistId': album['artistId'][0], 'name': album['artist']})
+            try:
+                self['songs'] = [Song(s) for s in album['tracks']]
+            except KeyError:
+                self['songs'] = []
+
+        elif source == 'json':
+            super().__init__(album['id'], album['name'], 'album', full)
+            self['artist'] = album['artist']
+            self['songs'] = album['songs']
+
+    @staticmethod
+    def verify(item):
+        """
+        Make sure a dict contains all necessary album data.
+
+        Arguments:
+        item: The dict being checked.
+
+        Returns: Whether or not the item contains sufficient data.
+        """
+        return all(k in item for k in
+                   ('id', 'name', 'kind', 'full', 'artist', 'songs'))
 
     def __str__(self):
         """Format an album into a string.
@@ -160,6 +209,8 @@ class Album(MusicObject):
 
     def play(self):
         """Play an album's song list."""
+        if not self['full']:
+            self.fill()
         MusicObject.play(self['songs'])
 
     def collect(self, limit=20):
@@ -178,7 +229,7 @@ class Album(MusicObject):
             'albums': [self]
         }
 
-    def fill(self, limit=0):
+    def fill(self, limit=100):
         """
         If an album is not full, fill in its song list.
 
@@ -188,10 +239,12 @@ class Album(MusicObject):
         Returns: A new, full, Album.
         """
         if self['full']:
-            return self
+            return
 
-        self = Album(api.get_album_info(self['id']), full=True)
-        return self
+        self['songs'] = [
+            Song(song) for song in api.get_album_info(self['id'])['tracks']
+        ]
+        self['full'] = True
 
 
 class Song(MusicObject):
@@ -210,14 +263,20 @@ class Song(MusicObject):
         """
         if source == 'api':  # Initializing from api results.
             super().__init__(song['storeId'], song['title'], 'song', full)
-            self['artist'] = Artist({
-                'name': song['artist'], 'artistId': song['artistId'][0]
-            })
+            try:
+                self['artist'] = Artist({
+                    'name': song['artist'], 'artistId': song['artistId'][0]
+                })
+            except TypeError:
+                self['artist'] = Artist({
+                    'name': song['artist'], 'artistId': song['artistId']
+                })
             self['album'] = Album({
                 'name': song['album'], 'albumId': song['albumId'],
                 'artist': song['artist'], 'artistId': song['artistId'],
             })
             self['time'] = Song.time_from_ms(song['durationMillis'])
+
         elif source == 'json':  # Initializing from JSON.
             super().__init__(song['id'], song['name'], 'song', full)
             self['artist'] = song['artist']
@@ -234,9 +293,8 @@ class Song(MusicObject):
 
         Returns: Whether or not the item contains sufficient data.
         """
-        return ('id' in item and 'name' in item and 'kind' in item and
-                'full' in item and 'artist' in item and 'album' in item
-                and 'time' in item)
+        return all(k for k in
+                   ('id', 'name', 'kind', 'full', 'artist', 'album', 'time'))
 
     @staticmethod
     def time_from_ms(ms):
@@ -286,10 +344,8 @@ class Song(MusicObject):
 
         Keyword arguments:
         limit=0: Irrelevant.
-
-        Returns: self.
         """
-        return self
+        return
 
 
 class Queue(list):
@@ -327,7 +383,7 @@ class Queue(list):
 
         Returns: number of songs that were successfully inserted.
         """
-        return sum([self.append(item) for item in items])
+        return sum(self.append(item) for item in items)
 
     def collect(self, limit=-1):
         """
@@ -351,15 +407,241 @@ class Queue(list):
         self.extend(cache[index:])
 
 
-class Content():
+class Library():
     """
-    A Content object holds all of the information to be displayed
-    on the main window.
+    A Library object holds all of the data currently displayed on the main
+      window, as well as free users' libraries.
     """
-    def __init__(self):
-        """Create an empty Content."""
-        self.content = {'songs': [], 'artists': [], 'albums': []}
+    def __init__(self, is_subbed):
+        """
+        Create an empty content dict and load the library if necessary.
 
+        Arguments:
+        is_subbed: Whether or not to search a library rather than online.
+          Paid accounts have access to search and so don't need a library.
+        """
+
+        self.content = {'songs': [], 'artists': [], 'albums': []}
+        if not is_subbed:
+            self.load_library()
+
+    @staticmethod
+    def gen_library():
+        """
+        Generate a local library from all the songs, playlists, and radio
+          stations that a user has saved on Google Play Music. This will
+          take a long time, scaling linearly with a user's library size.
+        """
+        library = {'songs': [], 'artists': [], 'albums': []}
+        # Rather than use sets, we keep lists of ids so we can determine
+        # duplicates before calling fill(), saving us a ton of API calls.
+        ids = {'songs': [], 'artists': [], 'albums': []}
+        out.outbar_msg('Generating library. This will take a while...')
+
+        # Songs.
+        for song in api.get_all_songs():
+            try:
+                if song['storeId'] not in ids['songs']:
+                    s = Song(song)
+            except KeyError:
+                continue
+            else:
+                s['artist'].fill()
+                s['album'].fill()
+                library['songs'].append(s)
+                library['artists'].append(s['artist'])
+                library['albums'].append(s['album'])
+                ids['songs'].append(s['id'])
+                ids['artists'].append(s['artist']['id'])
+                ids['albums'].append(s['album']['id'])
+
+        # There is so much weird stuff that can go wrong in the next part.
+        # so just catch everything.
+
+        # Radio stations.
+        s_ids = [s['id'] for s in api.get_all_stations()]
+        for id in s_ids:
+            try:
+                songs = api.get_station_tracks(id, num_tracks=10)
+            except:
+                continue
+            else:
+                for song in songs:
+                    try:
+                        if song['storeId'] not in ids['songs']:
+                            s = Song(song)
+                            s['artist'].fill()
+                            s['album'].fill()
+                    except KeyError:
+                        continue
+                    else:
+                        library['songs'].append(s)
+                        library['artists'].append(s['artist'])
+                        library['albums'].append(s['album'])
+                        ids['songs'].append(s['id'])
+                        ids['artists'].append(s['artist']['id'])
+                        ids['albums'].append(s['album']['id'])
+
+        # Playlists.
+        for song in [playlist['tracks']
+                     for playlist in api.get_all_user_playlist_contents()]:
+            try:
+                if song['trackId'] not in ids['songs']:
+                    s = Song(song)
+                    s['artist'].fill()
+                    s['album'].fill()
+            except KeyError:
+                continue
+            else:
+                library['songs'].append(s)
+                library['artists'].append(s['artist'])
+                library['albums'].append(s['album'])
+                ids['songs'].append(s['id'])
+                ids['artists'].append(s['artist']['id'])
+                ids['albums'].append(s['album']['id'])
+        # I'm too tired to think of a nifty comprehension for this one.
+        tokens = [p['shareToken'] for p in api.get_all_playlists()
+                  if p['type'] == 'SHARED']
+        for t in tokens:
+            for song in [s for s in api.get_shared_playlist_contents(t)
+                         if s['source'] == 2]:  # Only use songs hosted online.
+                try:
+                    if song['trackId'] not in ids['songs']:
+                        s = Song(song)
+                        s['artist'].fill()
+                        s['album'].fill()
+                except KeyError:
+                    continue
+                else:
+                    library['songs'].append(s)
+                    library['artists'].append(s['artist'])
+                    library['albums'].append(s['album'])
+                    ids['songs'].append(s['id'])
+                    ids['artists'].append(s['artist']['id'])
+                    ids['albums'].append(s['album']['id'])
+
+        for k in library:
+            library[k] = list(library[k])
+
+        with open(join(expanduser('~'), '.local', 'share',
+                       'pmcli', 'library.json'), 'w') as f:
+            json.dump(library, f)
+
+        out.outbar_msg('Generated %d songs, %d artists, and %d albums.' %
+                       tuple(len(library[k])
+                             for k in ('songs', 'artists', 'albums')))
+
+    def load_library(self):
+        """
+        Load a free user's library from a file, offering to initialize the
+        library if the files does not exist.
+        """
+        path = join(expanduser('~'), '.local',
+                    'share', 'pmcli', 'library.json')
+
+        if not isfile(path):  # Library does not exist.
+            out.outbar_msg('Library file not found. Would you like to '
+                           'generate your library (y/n)?')
+            if out.get_input().lower() == 'y':
+                Library.gen_library()
+                self.load_library()  # Try again.
+                return
+            else:
+                out.goodbye('Exiting.')
+
+        with open(path) as f:
+            try:
+                lib = json.load(f)
+            except json.decoder.JSONDecodeError:  # Bad file.
+                out.outbar_msg('%s is not a valid library file. Would you '
+                               'like to regenerate your library? (y/n)'
+                               % basename(path))
+                if out.get_input().lower() == 'y':
+                    Library.gen_library()
+                    self.load_library()
+                    return
+                else:
+                    out.goodbye('Exiting.')
+        # Missing data.
+        if any(k not in lib for k in ('songs', 'artists', 'albums')):
+                out.outbar_msg('%s is not a valid library file. Would you '
+                               'like to regenerate your library? (y/n)' %
+                               basename(path))
+                if out.get_input().lower() == 'y':
+                    Library.gen_library()
+                    self.load_library()
+                    return
+                else:
+                    out.goodbye('Exiting.')
+
+        self.library = {
+            'songs': [
+                Song(song, source='json')
+                for song in lib['songs'] if Song.verify(song)
+            ],
+            'artists': [
+                Artist(artist, source='json')
+                for artist in lib['artists'] if Artist.verify(artist)
+            ],
+            'albums': [
+                Album(album, source='json')
+                for album in lib['albums'] if Album.verify(album)
+            ]
+        }
+
+        out.outbar_msg('Loaded %d songs, %d artists, and %d albums.' %
+                       tuple(len(self.library[k])
+                             for k in ('songs', 'artists', 'albums')))
+
+    def search(self, query):
+        """
+        Search a library for a given query and set content to all matches.
+          We consider a query to be a match to an item if the query matches
+          some part of the item's info - name, songs, artist, and albums.
+
+        Arguments:
+        query: The search query.
+        """
+        query = query.lower()  # Search is case insensitive.
+        if out.curses:
+            limit = out.main.getmaxyx()[0] - 3
+        else:
+            limit = 50
+
+        def song_match(song):
+            return (query in song['name'].lower() or
+                    query in song['artist']['name'].lower() or
+                    query in song['album']['name'].lower())
+
+        def artist_match(artist):
+            return (query in artist['name'].lower() or
+                    any(query in song['name'].lower()
+                        for song in artist['songs']) or
+                    any(query in album['name'].lower()
+                        for album in artist['albums']))
+
+        def album_match(album):
+            return (query in album['name'].lower() or
+                    query in album['artist']['name'].lower() or
+                    any(query in song['name'].lower()
+                        for song in album['songs']))
+
+        self.content = {
+            'songs': list(filter(song_match, self.library['songs'])),
+            'artists': list(filter(artist_match, self.library['artists'])),
+            'albums': list(filter(album_match, self.library['albums']))
+        }
+
+        # Todo: do this better.
+        self.content['songs'] = self.content['songs'][:int(limit/3)]
+        self.content['artists'] = self.content['artists'][:int(limit/3)]
+        self.content['albums'] = self.content['albums'][:int(limit/3)]
+
+        # keys = ['songs', 'artists', 'albums']
+        # total = sum(len(self.content[key]) for key in keys)
+        # by_length = [x[0] for x in sorted(
+        #     zip(self.content.keys(), self.content.values()),
+        #     key=lambda x: len(x[1]))
 
 # -------------------- MUSIC OBJECT CLASSES END -------------------- #
 
@@ -387,7 +669,7 @@ class Writer():
             print('Incompatible arguments to writer: '
                   'curses must be disabled to test.')
             sleep(1)
-            quit()
+            sys.exit()
         self.main = main
         self.inbar = inbar
         self.infobar = infobar
@@ -500,13 +782,13 @@ class Writer():
         if not self.curses:
             if not self.test:
                 print('Goodbye.')
-            quit()
+            sys.exit()
 
         self.addstr(self.outbar, msg)
         sleep(2)
         crs.curs_set(1)
         crs.endwin()
-        quit()
+        sys.exit()
 
     def get_input(self):
         """
@@ -545,17 +827,17 @@ class Writer():
         """Update the main window with some content."""
         if not self.curses:
             if not self.test:
-                if 'songs' in c.content and c.content['songs']:
+                if 'songs' in lib.content and lib.content['songs']:
                     print('Songs:')
-                for song in c.content['songs']:
+                for song in lib.content['songs']:
                     print(str(song))
-                if 'artists' in c.content and c.content['artists']:
+                if 'artists' in lib.content and lib.content['artists']:
                     print('Artists:')
-                for artist in c.content['artists']:
+                for artist in lib.content['artists']:
                     print(str(artist))
-                if 'albums' in c.content and c.content['albums']:
+                if 'albums' in lib.content and lib.content['albums']:
                     print('Albums:')
-                for album in c.content['albums']:
+                for album in lib.content['albums']:
                     print(str(album))
             return
 
@@ -594,7 +876,8 @@ class Writer():
         (i_ch, n_ch, ar_ch, al_ch, n_start,
          ar_start, al_start) = measure_fields(out.main.getmaxyx()[1])
 
-        if 'songs' in c.content and c.content['songs']:  # Songs header.
+        # Songs header.
+        if 'songs' in lib.content and lib.content['songs']:
             self.main.addstr(
                 y, 0, '#', crs.color_pair(2) if cl else crs.A_UNDERLINE)
             self.main.addstr(
@@ -609,7 +892,8 @@ class Writer():
 
             y += 1
 
-            for song in c.content['songs']:  # Write each song.
+            # Write each song.
+            for song in lib.content['songs']:
                 self.main.addstr(
                     y, 0, str(i).zfill(2),
                     crs.color_pair(3 if y % 2 == 0 else 4) if cl else 0)
@@ -626,7 +910,8 @@ class Writer():
                 y += 1
                 i += 1
 
-        if 'artists' in c.content and c.content['artists']:  # Artists header.
+        # Artists header.
+        if 'artists' in lib.content and lib.content['artists']:
             self.main.addstr(
                 y, 0, '#', crs.color_pair(2) if cl else crs.A_UNDERLINE)
             self.main.addstr(
@@ -635,7 +920,8 @@ class Writer():
 
             y += 1
 
-            for artist in c.content['artists']:  # Write each artist.
+            # Write each artist.
+            for artist in lib.content['artists']:
                 self.main.addstr(
                     y, 0, str(i).zfill(2),
                     crs.color_pair(3 if y % 2 == 0 else 4) if cl else 0)
@@ -646,7 +932,8 @@ class Writer():
                 y += 1
                 i += 1
 
-        if 'albums' in c.content and c.content['albums']:  # Albums header.
+        # Albums header.
+        if 'albums' in lib.content and lib.content['albums']:
             self.main.addstr(
                 y, 0, '#', crs.color_pair(2) if cl else crs.A_UNDERLINE)
             self.main.addstr(
@@ -658,7 +945,8 @@ class Writer():
 
             y += 1
 
-            for album in c.content['albums']:  # Write each album.
+            # Write each album.
+            for album in lib.content['albums']:
                 self.main.addstr(
                     y, 0, str(i).zfill(2),
                     crs.color_pair(3 if y % 2 == 0 else 4) if cl else 0)
@@ -692,8 +980,8 @@ def transition(input):
         'help': help,
         'e': expand,
         'expand': expand,
-        's': search,
-        'search': search,
+        's': search if api.is_subscribed else lib.search,
+        'search': search if api.is_subscribed else lib.search,
         'p': play,
         'play': play,
         'q': enqueue,
@@ -705,7 +993,7 @@ def transition(input):
     }
 
     arg = None
-    if c.content is None:
+    if lib.content is None:
         out.now_playing()
 
     try:
@@ -715,7 +1003,7 @@ def transition(input):
 
     if command in commands:
         commands[command](arg)
-        if c.content is not None and out.curses:
+        if lib.content is not None and out.curses:
             out.display()
     else:
         out.error_msg('Nonexistent command')
@@ -734,16 +1022,17 @@ def get_option(num, limit=-1):
 
     Returns: The MusicObject at index 'num'.
     """
-    total = sum([len(c.content[k]) for k in c.content.keys()])
+    total = sum(len(lib.content[k]) for k in lib.content.keys())
     if num < 0 or num > total:
         out.error_msg('Index out of range: valid between 1-%d' % total)
         return None
 
     i = 1
     for key in ('songs', 'artists', 'albums'):  # Hardcoded to guarantee order.
-        for item in c.content[key]:
+        for item in lib.content[key]:
             if i == num:
-                return item.fill(limit)  # Always return item with all content.
+                item.fill(limit)  # Always return item with all content.
+                return item
             else:
                 i += 1
 
@@ -767,7 +1056,7 @@ def enqueue(arg=None):
             else:
                 limit = -1
             if queue:
-                c.content = queue.collect(limit)
+                lib.content = queue.collect(limit)
             else:
                 out.error_msg('Wrong context for queue')
 
@@ -794,8 +1083,8 @@ def enqueue(arg=None):
                                    (count, '' if count == 1 else 's'))
 
             else:
-                if (num > len(c.content['songs']) and
-                    num <= len(c.content['songs']) + len(c.content['artists'])):  # noqa
+                if (num > len(lib.content['songs']) and
+                    num <= len(lib.content['songs']) + len(lib.content['artists'])):  # noqa
                     out.error_msg('Can only add songs or albums to the queue.')
                 else:
                     item = get_option(num)
@@ -815,7 +1104,7 @@ def expand(num=None):
     """
     if num is None:  # No argument.
         out.error_msg('Missing argument to play')
-    elif c.content is None:  # Nothing to expand.
+    elif lib.content is None:  # Nothing to expand.
         out.error_msg('Wrong context for expand.')
     else:
         try:
@@ -832,7 +1121,7 @@ def expand(num=None):
             item = get_option(num, limit)
 
             if item is not None:  # Valid input.
-                c.content = item.collect(limit=limit)
+                lib.content = item.collect(limit=limit)
                 out.erase_outbar()
 
 
@@ -843,7 +1132,7 @@ def help(arg=0):
     Keyword arguments:
     arg=0: Irrelevant.
     """
-    c.content = None
+    lib.content = None
     if not out.curses:
         return
 
@@ -888,14 +1177,14 @@ def play(arg=None):
                 limit = out.main.getmaxyx()[0] - 1  # Allow room for header.
             else:
                 limit = -1
-            c.content = queue.collect(limit)
+            lib.content = queue.collect(limit)
             out.display()
             out.outbar_msg(
                 '[spc] pause [q] stop [n] next [9-0] volume [arrows] seek')
             queue.play()
             out.erase_outbar()
 
-    elif c.content is None:  # Nothing to play.
+    elif lib.content is None:  # Nothing to play.
         out.error_msg('Wrong context for play')
     else:
         try:
@@ -987,14 +1276,14 @@ def search(query=None):
             'key': 'album',
         }
     }
-    c.content = {'songs': [], 'artists': [], 'albums': []}
-    iters = {k: iter(result[mapping[k]['hits']]) for k in c.content.keys()}
+    lib.content = {'songs': [], 'artists': [], 'albums': []}
+    iters = {k: iter(result[mapping[k]['hits']]) for k in lib.content.keys()}
 
     # Create at most 'limit' of each type.
     for i in range(limit):
         for k in iters.keys():
             try:
-                c.content[k].append(
+                lib.content[k].append(
                     mapping[k]['class'](next(iters[k])[mapping[k]['key']]))
             except StopIteration:
                 pass
@@ -1209,7 +1498,7 @@ def easy_login():
 
     if not api.login(user['email'], user['password'], user['deviceid']):
         print('Login failed: exiting.')
-        quit()
+        sys.exit()
     else:
         print('Logged in as %s (%s).' %
               (user['email'], 'Full' if api.is_subscribed else 'Free'))
@@ -1236,7 +1525,6 @@ def login(user):
 api = Mobileclient()
 queue = Queue()
 out = Writer(None, None, None, None, curses=False)
-c = Content()
 
 if __name__ == '__main__':
     out = Writer(*get_windows())
@@ -1248,8 +1536,11 @@ if __name__ == '__main__':
     out.welcome()
     login(config['user'])
     out.addstr(out.infobar, 'Enter \'h\' or \'help\' if you need help.')
+    lib = Library(api.is_subscribed)
 
     while True:
         transition(out.get_input())
+
 else:
     easy_login()
+    lib = Library(api.is_subscribed)
