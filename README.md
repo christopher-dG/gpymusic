@@ -5,7 +5,7 @@ Browse and stream Google Play Music from the comfort and familiarity of your fav
 ![screencast]( https://zippy.gfycat.com/SnivelingLavishAtlanticblackgoby.gif "Yes, I'm aware that this is technically a TUI")
 
 ## Notice
-As of right now, pmcli only works for users with paid accounts (see [issue #5](https://github.com/christopher-dg/issue/5)). In the next couple of days, I'll add the ability for free users to access their library, but searching/playing arbitrary stuff is not possible with gmusicapi in its current state.
+As of right now, pmcli only works for users with paid accounts. Due to limitations on the API/Google's end, it's probably going to stay that way for a while until I can figure out an alternative.
 
 ## Dependencies
 
