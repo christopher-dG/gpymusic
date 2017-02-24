@@ -15,7 +15,7 @@ from warnings import filterwarnings
 # -------------------- MUSIC OBJECT CLASSES START -------------------- #
 
 class MusicObject(dict):
-    """A dict representing a song, articlasst, or album."""
+    """A dict representing a song, artist, or album."""
 
     def __init__(self, id, name, kind, full):
         """
@@ -423,7 +423,6 @@ class Library():
         is_subbed: Whether or not to search a library rather than online.
           Paid accounts have access to search and so don't need a library.
         """
-
         self.content = {'songs': [], 'artists': [], 'albums': []}
         if not is_subbed:
             self.load_library()
@@ -711,10 +710,11 @@ class Writer():
         Returns: The original string if it is short enough to be displayed,
           otherwise the string truncated and padded with '...'.
         """
-        if ch < 0 or len(string) <= ch:
+
+        if ch < 0 or len(string) < ch:
             return string
         else:
-            return string[:-((len(string) - ch) + 3)] + '...'
+            return string[:-((len(string) - ch) + 4)] + '...'
 
     def addstr(self, win, string):
         """
@@ -922,7 +922,7 @@ class Writer():
                     y, n_start, Writer.trunc(song['name'], n_ch),
                     crs.color_pair(3 if y % 2 == 0 else 4) if cl else 0)
                 self.main.addstr(
-                    y, ar_start, Writer.trunc(song['artist']['name'], ar_ch),  # noqa
+                    y, ar_start, Writer.trunc(song['artist']['name'], ar_ch),
                     crs.color_pair(3 if y % 2 == 0 else 4) if cl else 0)
                 self.main.addstr(
                     y, al_start, Writer.trunc(song['album']['name'], al_ch),
@@ -1073,7 +1073,7 @@ def enqueue(arg=None):
 
         else:  # Display the queue.
             if out.curses:
-                limit = out.main.getmaxyx()[0] - 1  # Allow room for header.
+                limit = out.main.getmaxyx()[0] - 2  # Allow room for header.
             else:
                 limit = -1
             if queue:
