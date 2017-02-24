@@ -211,6 +211,7 @@ class Writer():
             i_ch = 3  # Characters to allocate for index.
             # Width of each name, artist, and album fields.
             n_ch = ar_ch = al_ch = int((width - i_ch - 3 * padding) / 3)
+            al_ch -= 1  # Hacky guard against overflow.
 
             total = sum([i_ch, n_ch, ar_ch, al_ch, 3 * padding])
 
