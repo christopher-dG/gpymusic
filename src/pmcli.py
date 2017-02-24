@@ -8,7 +8,6 @@ from random import shuffle
 from getpass import getpass
 from subprocess import call
 from time import sleep
-
 from warnings import filterwarnings
 
 filterwarnings('ignore')
@@ -18,6 +17,7 @@ filterwarnings('ignore')
 
 class MusicObject(dict):
     """A dict representing a song, artist, or album."""
+
     def __init__(self, id, name, kind, full):
         """
         Assign to fields common to Songs, Artists, and Albums.
@@ -66,6 +66,7 @@ class MusicObject(dict):
 
 class Artist(MusicObject):
     """A dict representing an artist."""
+
     def __init__(self, artist, full=False):
         """
         # Create a new Artist.
@@ -133,6 +134,7 @@ class Artist(MusicObject):
 
 class Album(MusicObject):
     """A dict representing an album."""
+
     def __init__(self, album, full=False):
         """
         Create a new Album
@@ -196,6 +198,7 @@ class Album(MusicObject):
 
 class Song(MusicObject):
     """A dict representing a song."""
+
     def __init__(self, song, full=True, source='api'):
         """
         Create a new Song.
@@ -294,6 +297,7 @@ class Song(MusicObject):
 
 class Queue(list):
     """A queue of songs to be played."""
+
     def __init__(self):
         """Create an empty Queue."""
         super().__init__(self)
@@ -356,6 +360,7 @@ class Content():
     A Content object holds all of the information to be displayed
     on the main window.
     """
+
     def __init__(self):
         """Create an empty Content."""
         self.content = {'songs': [], 'artists': [], 'albums': []}
@@ -487,7 +492,7 @@ class Writer():
                 print('Welcome to pmcli!')
             return
 
-        self.main.addstr(5, int(crs.COLS/2) - 9, 'Welcome to pmcli!')
+        self.main.addstr(5, int(crs.COLS / 2) - 9, 'Welcome to pmcli!')
         self.main.refresh()
 
     def goodbye(self, msg):
@@ -573,9 +578,9 @@ class Writer():
             padding = 1  # Space between fields.
             i_ch = 3  # Characters to allocate for index.
             # Width of each name, artist, and album fields.
-            n_ch = ar_ch = al_ch = int((width - i_ch - 3*padding)/3)
+            n_ch = ar_ch = al_ch = int((width - i_ch - 3 * padding) / 3)
 
-            total = sum([i_ch, n_ch, ar_ch, al_ch, 3*padding])
+            total = sum([i_ch, n_ch, ar_ch, al_ch, 3 * padding])
 
             if total != width:  # Allocate any leftover space to name.
                 n_ch += width - total
@@ -617,7 +622,7 @@ class Writer():
                     y, n_start, Writer.trunc(song['name'], n_ch),
                     crs.color_pair(3 if y % 2 == 0 else 4) if cl else 0)
                 self.main.addstr(
-                    y, ar_start, Writer.trunc(song['artist']['name'], ar_ch),  # noqa
+                    y, ar_start, Writer.trunc(song['artist']['name'], ar_ch),
                     crs.color_pair(3 if y % 2 == 0 else 4) if cl else 0)
                 self.main.addstr(
                     y, al_start, Writer.trunc(song['album']['name'], al_ch),
@@ -828,7 +833,7 @@ def expand(num=None):
             else:
                 # Artists only have one artist and albums only have one album,
                 # so we can allocate more space for the other fields.
-                limit = int((out.main.getmaxyx()[0] - 9)/2)
+                limit = int((out.main.getmaxyx()[0] - 9) / 2)
             item = get_option(num, limit)
 
             if item is not None:  # Valid input.
@@ -959,7 +964,7 @@ def search(query=None):
 
     # Fetch as many results as we can display depending on terminal height.
     if out.curses:
-        limit = int((out.main.getmaxyx()[0] - 3)/3)
+        limit = int((out.main.getmaxyx()[0] - 3) / 3)
     else:
         limit = 50
 
@@ -1145,10 +1150,10 @@ def get_windows():
     Returns: Curses windows.
     """
     main = crs.initscr()  # Forthe bulk of output.
-    main.resize(crs.LINES-3, crs.COLS)
-    inbar = crs.newwin(1, crs.COLS, crs.LINES-1, 0)  # For user input.
-    infobar = crs.newwin(1, crs.COLS, crs.LINES-2, 0)  # For 'now playing'.
-    outbar = crs.newwin(1, crs.COLS, crs.LINES-3, 0)  # For notices.
+    main.resize(crs.LINES - 3, crs.COLS)
+    inbar = crs.newwin(1, crs.COLS, crs.LINES - 1, 0)  # For user input.
+    infobar = crs.newwin(1, crs.COLS, crs.LINES - 2, 0)  # For 'now playing'.
+    outbar = crs.newwin(1, crs.COLS, crs.LINES - 3, 0)  # For notices.
     return main, inbar, infobar, outbar
 
 
