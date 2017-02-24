@@ -10,8 +10,6 @@ from subprocess import call
 from time import sleep
 from warnings import filterwarnings
 
-filterwarnings('ignore')
-
 
 # -------------------- MUSIC OBJECT CLASSES START -------------------- #
 
@@ -413,10 +411,11 @@ class Writer():
         Returns: The original string if it is short enough to be displayed,
           otherwise the string truncated and padded with '...'.
         """
-        if ch < 0 or len(string) <= ch:
+
+        if ch < 0 or len(string) < ch:
             return string
         else:
-            return string[:-((len(string) - ch) + 3)] + '...'
+            return string[:-((len(string) - ch) + 4)] + '...'
 
     def addstr(self, win, string):
         """
@@ -1238,6 +1237,7 @@ def login(user):
 # --------------------------- LOGIN STUFF END --------------------------- #
 
 
+filterwarnings('ignore')
 api = Mobileclient()
 queue = Queue()
 out = Writer(None, None, None, None, curses=False)
