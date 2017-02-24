@@ -12,8 +12,6 @@ from time import sleep
 from warnings import filterwarnings
 
 
-# -------------------- MUSIC OBJECT CLASSES START -------------------- #
-
 class MusicObject(dict):
     """A dict representing a song, artist, or album."""
 
@@ -47,12 +45,13 @@ class MusicObject(dict):
         """
         conf_path = join(expanduser('~'), '.config', 'pmcli', 'mpv_input.conf')
         if not isfile(conf_path):
-            out.goodbye('No mpv_input.conf found.')
+            w.goodbye('No mpv_input.conf found.')
         i = 1
 
         for song in songs:
-            url = api.get_stream_url(song['id'])
-            out.now_playing(str(song), song['time'])
+            url = mc.get_stream_url(song['id'])
+            w.now_playing('(%d/%d) %s (%s)' %
+                          (i, len(songs), str(song), song['time']))
 
             if call(
                     ['mpv', '--really-quiet', '--input-conf', conf_path, url]
@@ -63,8 +62,8 @@ class MusicObject(dict):
         return None
 
     def __hash__(self):
-        """Use ID to hash."""
-        return sum(ord(c) for c in self['id'])
+        """Use ID to hash. This doesn't need to be strong."""
+        return ''.join(str(ord(c)) for c in self['id'])
 
 
 class Artist(MusicObject):
@@ -153,7 +152,7 @@ class Artist(MusicObject):
 
         self['songs'] = [
             Song(song) for song in
-            api.get_artist_info(self['id'], max_top_tracks=limit)['topTracks']
+            mc.get_artist_info(self['id'], max_top_tracks=limit)['topTracks']
         ]
         self['full'] = True
 
@@ -242,7 +241,7 @@ class Album(MusicObject):
             return
 
         self['songs'] = [
-            Song(song) for song in api.get_album_info(self['id'])['tracks']
+            Song(song) for song in mc.get_album_info(self['id'])['tracks']
         ]
         self['full'] = True
 
@@ -405,267 +404,18 @@ class Queue(list):
         cache = self[:]
         del self[:]
         index = MusicObject.play(cache)
-        out.now_playing()
+        w.now_playing()
         self.extend(cache[index:])
 
 
-class Library():
+class View():
     """
-    A Library object holds all of the data currently displayed on the main
-      window, as well as free users' libraries.
+    A View object holds all of the data currently displayed on the main window.
     """
 
-    def __init__(self, is_subbed):
-        """
-        Create an empty content dict and load the library if necessary.
-
-        Arguments:
-        is_subbed: Whether or not to search a library rather than online.
-          Paid accounts have access to search and so don't need a library.
-        """
+    def __init__(self):
+        """Create an empty View."""
         self.content = {'songs': [], 'artists': [], 'albums': []}
-        if not is_subbed:
-            self.load_library()
-
-    @staticmethod
-    def gen_library():
-        """
-        Generate a local library from all the songs, playlists, and radio
-          stations that a user has saved on Google Play Music. This will
-          take a long time, scaling linearly with a user's library size.
-        """
-
-        # There is so much weird stuff that can go wrong here, so just
-        # skip any elements that raise exceptions/errors.
-
-        library = {'songs': [], 'artists': [], 'albums': []}
-        ids = {'songs': [], 'artists': [], 'albums': []}
-        out.outbar_msg('Generating library. This will take a while...')
-        out.addstr(out.infobar('pmcli will quit when finished, restart to '
-                               'load your library.'))
-
-        # Songs.
-        for song in api.get_all_songs():
-            try:
-                if song['storeId'] not in ids['songs']:
-                    s = Song(song)
-                    s['artist'].fill()
-                    s['album'].fill()
-            except:
-                continue
-            else:
-                if s['id'] not in ids['songs']:
-                    library['songs'].append(s)
-                    ids['songs'].append(s['id'])
-                if s['artist']['id'] not in ids['artists']:
-                    library['artists'].append(s['artist'])
-                    ids['artists'].append(s['artist']['id'])
-                if s['album']['id'] not in ids['albums']:
-                    library['albums'].append(s['album'])
-                    ids['albums'].append(s['album']['id'])
-
-        # Radio stations.
-        # Todo: A better comprehension for this.
-        s_ids = [s['id'] for s in api.get_all_stations()]
-        for id in s_ids:
-            try:
-                songs = api.get_station_tracks(id, num_tracks=10)
-            except:
-                continue
-            else:
-                for song in songs:
-                    try:
-                        if song['storeId'] not in ids['songs']:
-                            s = Song(song)
-                            s['artist'].fill()
-                            s['album'].fill()
-                    except:
-                        continue
-                    else:
-                        if s['id'] not in ids['songs']:
-                            library['songs'].append(s)
-                            ids['songs'].append(s['id'])
-                        if s['artist']['id'] not in ids['artists']:
-                            library['artists'].append(s['artist'])
-                            ids['artists'].append(s['artist']['id'])
-                        if s['album']['id'] not in ids['albums']:
-                            library['albums'].append(s['album'])
-                            ids['albums'].append(s['album']['id'])
-
-        # Playlists.
-        for song in [playlist['tracks']
-                     for playlist in api.get_all_user_playlist_contents()]:
-            try:
-                if song['trackId'] not in ids['songs']:
-                    s = Song(song)
-                    s['artist'].fill()
-                    s['album'].fill()
-            except:
-                continue
-            else:
-                if s['id'] not in ids['songs']:
-                    library['songs'].append(s)
-                    ids['songs'].append(s['id'])
-                if s['artist']['id'] not in ids['artists']:
-                    library['artists'].append(s['artist'])
-                    ids['artists'].append(s['artist']['id'])
-                if s['album']['id'] not in ids['albums']:
-                    library['albums'].append(s['album'])
-                    ids['albums'].append(s['album']['id'])
-
-        # I'm too tired to think of a nifty comprehension for this one.
-        tokens = [p['shareToken'] for p in api.get_all_playlists()
-                  if p['type'] == 'SHARED']
-        for t in tokens:
-            for song in [s for s in api.get_shared_playlist_contents(t)
-                         if s['source'] == 2]:  # Only use songs hosted online.
-                try:
-                    if song['trackId'] not in ids['songs']:
-                        s = Song(song)
-                        s['artist'].fill()
-                        s['album'].fill()
-                except:
-                    continue
-                else:
-                    if s['id'] not in ids['songs']:
-                        library['songs'].append(s)
-                        ids['songs'].append(s['id'])
-                    if s['artist']['id'] not in ids['artists']:
-                        library['artists'].append(s['artist'])
-                        ids['artists'].append(s['artist']['id'])
-                    if s['album']['id'] not in ids['albums']:
-                        library['albums'].append(s['album'])
-                        ids['albums'].append(s['album']['id'])
-
-        for k in library:
-            library[k] = list(library[k])
-
-        with open(join(expanduser('~'), '.local', 'share',
-                       'pmcli', 'library.json'), 'w') as f:
-            json.dump(library, f)
-
-        out.outbar_msg('Generated %d songs, %d artists, and %d albums.' %
-                       tuple(len(library[k])
-                             for k in ('songs', 'artists', 'albums')))
-        out.addstr(out.infobar('Exiting.'))
-        sleep(2)
-        sys.exit()
-
-    def load_library(self):
-        """
-        Load a free user's library from a file, offering to initialize the
-        library if the files does not exist.
-        """
-        path = join(expanduser('~'), '.local',
-                    'share', 'pmcli', 'library.json')
-
-        if not isfile(path):  # Library does not exist.
-            out.outbar_msg('Library file not found. Would you like to '
-                           'generate your library (y/n)?')
-            if out.get_input().lower() == 'y':
-                Library.gen_library()
-                self.load_library()  # Try again.
-                return
-            else:
-                out.goodbye('Exiting.')
-
-        with open(path) as f:
-            try:
-                lib = json.load(f)
-            except json.decoder.JSONDecodeError:  # Bad file.
-                out.outbar_msg('%s is not a valid library file. Would you '
-                               'like to regenerate your library? (y/n)'
-                               % basename(path))
-                if out.get_input().lower() == 'y':
-                    Library.gen_library()
-                    self.load_library()
-                    return
-                else:
-                    out.goodbye('Exiting.')
-        # Missing data.
-        if any(k not in lib for k in ('songs', 'artists', 'albums')):
-            out.outbar_msg('%s is not a valid library file. Would you '
-                           'like to regenerate your library? (y/n)' %
-                           basename(path))
-            if out.get_input().lower() == 'y':
-                Library.gen_library()
-                self.load_library()
-                return
-            else:
-                out.goodbye('Exiting.')
-
-        self.library = {
-            'songs': [
-                Song(song, source='json')
-                for song in lib['songs'] if Song.verify(song)
-            ],
-            'artists': [
-                Artist(artist, source='json')
-                for artist in lib['artists'] if Artist.verify(artist)
-            ],
-            'albums': [
-                Album(album, source='json')
-                for album in lib['albums'] if Album.verify(album)
-            ]
-        }
-
-        out.outbar_msg('Loaded %d songs, %d artists, and %d albums.' %
-                       tuple(len(self.library[k])
-                             for k in ('songs', 'artists', 'albums')))
-
-    def search(self, query):
-        """
-        Search a library for a given query and set content to all matches.
-          We consider a query to be a match to an item if the query matches
-          some part of the item's info - name, songs, artist, and albums.
-
-        Arguments:
-        query: The search query.
-        """
-        query = query.lower()  # Search is case insensitive.
-        if out.curses:
-            limit = out.main.getmaxyx()[0] - 3
-        else:
-            limit = 50
-
-        def song_match(song):
-            return (query in song['name'].lower() or
-                    query in song['artist']['name'].lower() or
-                    query in song['album']['name'].lower())
-
-        def artist_match(artist):
-            return (query in artist['name'].lower() or
-                    any(query in song['name'].lower()
-                        for song in artist['songs']) or
-                    any(query in album['name'].lower()
-                        for album in artist['albums']))
-
-        def album_match(album):
-            return (query in album['name'].lower() or
-                    query in album['artist']['name'].lower() or
-                    any(query in song['name'].lower()
-                        for song in album['songs']))
-
-        self.content = {
-            'songs': list(filter(song_match, self.library['songs'])),
-            'artists': list(filter(artist_match, self.library['artists'])),
-            'albums': list(filter(album_match, self.library['albums']))
-        }
-
-        # Todo: do this better.
-        self.content['songs'] = self.content['songs'][:int(limit / 3)]
-        self.content['artists'] = self.content['artists'][:int(limit / 3)]
-        self.content['albums'] = self.content['albums'][:int(limit / 3)]
-
-        # keys = ['songs', 'artists', 'albums']
-        # total = sum(len(self.content[key]) for key in keys)
-        # by_length = [x[0] for x in sorted(
-        #     zip(self.content.keys(), self.content.values()),
-        #     key=lambda x: len(x[1]))
-
-# -------------------- MUSIC OBJECT CLASSES END -------------------- #
-
-# -------------------------- WRITER START -------------------------- #
 
 
 class Writer():
@@ -680,9 +430,9 @@ class Writer():
         main/inbar/infobar/outbar: curses windows.
 
         Keyword arguments:
-        curses=True: Flag for disabling curses output.
-        colour=False: Flag for disabling colour output.
-        test=False: Flag to disable all output for unit testing.
+        curses = True: Flag for disabling curses output.
+        colour = False: Flag for disabling colour output.
+        test = False: Flag to disable all output for unit testing.
           If test is True, then curses must be disabled.
         """
         if test and curses:
@@ -711,10 +461,10 @@ class Writer():
           otherwise the string truncated and padded with '...'.
         """
 
-        if ch < 0 or len(string) < ch:
+        if ch < 0 or len(string) <= ch:
             return string
         else:
-            return string[:-((len(string) - ch) + 4)] + '...'
+            return string[:-((len(string) - ch) + 3)] + '...'
 
     def addstr(self, win, string):
         """
@@ -731,7 +481,7 @@ class Writer():
             return
 
         win.erase()
-        win.addstr(Writer.trunc(string, win.getmaxyx()[1]))
+        win.addstr(Writer.trunc(string, win.getmaxyx()[1] - 1))
         win.refresh()
 
     def refresh(self):
@@ -744,22 +494,19 @@ class Writer():
         self.infobar.refresh()
         self.outbar.refresh()
 
-    def now_playing(self, string=None, time=None):
+    def now_playing(self, string=None):
         """
         Show 'now playing' information. If both kwargs are None,
           nothing is playing.
 
         Keyword arguments:
-        string=None: Formatted song string.
-        time=None: Length of the song playing.
+        string = None: Formatted song string.
+        time = None: Length of the song playing.
         """
         if self.test:
             return
-
-        if string is None or time is None:
-            self.addstr(self.infobar, 'Now playing: None')
-        else:
-            self.addstr(self.infobar, 'Now playing: %s (%s)' % (string, time))
+        self.addstr(self.infobar, 'Now playing: %s' %
+                    (string if string is not None else 'None'))
 
     def erase_outbar(self):
         """Erases content on the outbar."""
@@ -815,7 +562,7 @@ class Writer():
         """
         Get user input in the bottom bar.
 
-        Returns: The user-inputted string.
+        Returns: The user - inputted string.
         """
         if not self.curses:
             return input('Enter some input: ')
@@ -848,17 +595,17 @@ class Writer():
         """Update the main window with some content."""
         if not self.curses:
             if not self.test:
-                if 'songs' in lib.content and lib.content['songs']:
+                if 'songs' in c.content and c.content['songs']:
                     print('Songs:')
-                for song in lib.content['songs']:
+                for song in c.content['songs']:
                     print(str(song))
-                if 'artists' in lib.content and lib.content['artists']:
+                if 'artists' in c.content and c.content['artists']:
                     print('Artists:')
-                for artist in lib.content['artists']:
+                for artist in c.content['artists']:
                     print(str(artist))
-                if 'albums' in lib.content and lib.content['albums']:
+                if 'albums' in c.content and c.content['albums']:
                     print('Albums:')
-                for album in lib.content['albums']:
+                for album in c.content['albums']:
                     print(str(album))
             return
 
@@ -895,10 +642,10 @@ class Writer():
         self.main.erase()
         y, i = 0, 1  # y coordinate in main window, current item index.
         (i_ch, n_ch, ar_ch, al_ch, n_start,
-         ar_start, al_start) = measure_fields(out.main.getmaxyx()[1])
+         ar_start, al_start) = measure_fields(w.main.getmaxyx()[1])
 
         # Songs header.
-        if 'songs' in lib.content and lib.content['songs']:
+        if 'songs' in c.content and c.content['songs']:
             self.main.addstr(
                 y, 0, '#', crs.color_pair(2) if cl else crs.A_UNDERLINE)
             self.main.addstr(
@@ -914,7 +661,7 @@ class Writer():
             y += 1
 
             # Write each song.
-            for song in lib.content['songs']:
+            for song in c.content['songs']:
                 self.main.addstr(
                     y, 0, str(i).zfill(2),
                     crs.color_pair(3 if y % 2 == 0 else 4) if cl else 0)
@@ -932,7 +679,7 @@ class Writer():
                 i += 1
 
         # Artists header.
-        if 'artists' in lib.content and lib.content['artists']:
+        if 'artists' in c.content and c.content['artists']:
             self.main.addstr(
                 y, 0, '#', crs.color_pair(2) if cl else crs.A_UNDERLINE)
             self.main.addstr(
@@ -942,7 +689,7 @@ class Writer():
             y += 1
 
             # Write each artist.
-            for artist in lib.content['artists']:
+            for artist in c.content['artists']:
                 self.main.addstr(
                     y, 0, str(i).zfill(2),
                     crs.color_pair(3 if y % 2 == 0 else 4) if cl else 0)
@@ -954,7 +701,7 @@ class Writer():
                 i += 1
 
         # Albums header.
-        if 'albums' in lib.content and lib.content['albums']:
+        if 'albums' in c.content and c.content['albums']:
             self.main.addstr(
                 y, 0, '#', crs.color_pair(2) if cl else crs.A_UNDERLINE)
             self.main.addstr(
@@ -967,7 +714,7 @@ class Writer():
             y += 1
 
             # Write each album.
-            for album in lib.content['albums']:
+            for album in c.content['albums']:
                 self.main.addstr(
                     y, 0, str(i).zfill(2),
                     crs.color_pair(3 if y % 2 == 0 else 4) if cl else 0)
@@ -1001,8 +748,8 @@ def transition(input):
         'help': help,
         'e': expand,
         'expand': expand,
-        's': search if api.is_subscribed else lib.search,
-        'search': search if api.is_subscribed else lib.search,
+        's': search if mc.is_subscribed else lib.search,
+        'search': search if mc.is_subscribed else lib.search,
         'p': play,
         'play': play,
         'q': enqueue,
@@ -1014,8 +761,8 @@ def transition(input):
     }
 
     arg = None
-    if lib.content is None:
-        out.now_playing()
+    if c.content is None:
+        w.now_playing()
 
     try:
         command, arg = input.split(maxsplit=1)
@@ -1024,10 +771,10 @@ def transition(input):
 
     if command in commands:
         commands[command](arg)
-        if lib.content is not None and out.curses:
-            out.display()
+        if c.content is not None and w.curses:
+            w.display()
     else:
-        out.error_msg('Nonexistent command')
+        w.error_msg('Nonexistent command')
 
 
 def get_option(num, limit=-1):
@@ -1038,19 +785,19 @@ def get_option(num, limit=-1):
     num: Index of the MusicObject in the main window to be returned.
 
     Keyword argumnents:
-    limit=-1: Number of songs to generate for artists,
+    limit = -1: Number of songs to generate for artists,
       determined by terminal height.
 
     Returns: The MusicObject at index 'num'.
     """
-    total = sum(len(lib.content[k]) for k in lib.content.keys())
+    total = sum(len(c.content[k]) for k in c.content.keys())
     if num < 0 or num > total:
-        out.error_msg('Index out of range: valid between 1-%d' % total)
+        w.error_msg('Index out of range: valid between 1-%d' % total)
         return None
 
     i = 1
     for key in ('songs', 'artists', 'albums'):  # Hardcoded to guarantee order.
-        for item in lib.content[key]:
+        for item in c.content[key]:
             if i == num:
                 item.fill(limit)  # Always return item with all content.
                 return item
@@ -1063,28 +810,28 @@ def enqueue(arg=None):
     Display the current queue, or add an item to the queue.
 
     Keyword arguments:
-    arg=None: Index of the MusicObject in the main window to add to
+    arg = None: Index of the MusicObject in the main window to add to
       the queue, 'c' to clear the queue, None to display the queue, or
-      a space-delimited list of indices to add to the queue, i.e. '1 2 3'.
+      a space - delimited list of indices to add to the queue, i.e. '1 2 3'.
     """
     if arg is None:
-        if not queue:  # Nothing to display.
-            out.error_msg('The queue is empty')
+        if not q:  # Nothing to display.
+            w.error_msg('The queue is empty')
 
         else:  # Display the queue.
-            if out.curses:
-                limit = out.main.getmaxyx()[0] - 2  # Allow room for header.
+            if w.curses:
+                limit = w.main.getmaxyx()[0] - 2  # Allow room for header.
             else:
                 limit = -1
-            if queue:
-                lib.content = queue.collect(limit)
+            if q:
+                c.content = q.collect(limit)
             else:
-                out.error_msg('Wrong context for queue')
+                w.error_msg('Wrong context for queue')
 
     else:
         if arg is 'c':  # Clear the queue.
-            out.outbar_msg('Cleared queue.')
-            del queue[:]
+            w.outbar_msg('Cleared queue.')
+            del q[:]
 
         else:
             try:
@@ -1094,26 +841,26 @@ def enqueue(arg=None):
                 try:  # Check for multi-option argument.
                     nums = [int(i) for i in arg.split()]
                 except ValueError:  # Invalid argument.
-                    out.error_msg('Invalid argument to queue')
+                    w.error_msg('Invalid argument to queue')
                 else:  # Add all arguments to the queue.
-                    out.outbar_msg('Adding items to the queue...')
+                    w.outbar_msg('Adding items to the queue...')
                     items = [get_option(num) for num in nums]
-                    count = queue.extend(
+                    count = q.extend(
                         [item for item in items if item is not None])
-                    out.outbar_msg('Added %d song%s to the queue.' %
-                                   (count, '' if count == 1 else 's'))
+                    w.outbar_msg('Added %d song%s to the queue.' %
+                                 (count, '' if count == 1 else 's'))
 
             else:
-                if (num > len(lib.content['songs']) and
-                    num <= len(lib.content['songs']) + len(lib.content['artists'])):  # noqa
-                    out.error_msg('Can only add songs or albums to the queue.')
+                if (num > len(c.content['songs']) and
+                    num <= len(c.content['songs']) + len(c.content['artists'])):  # noqa
+                    w.error_msg('Can only add songs or albums to the queue.')
                 else:
                     item = get_option(num)
                     if item is not None:
-                        count = queue.append(item)
+                        count = q.append(item)
                         # I feel so dirty using double quotes.
-                        out.outbar_msg("Added %d song%s to the queue." %
-                                       (count, '' if count == 1 else 's'))
+                        w.outbar_msg("Added %d song%s to the queue." %
+                                     (count, '' if count == 1 else 's'))
 
 
 def expand(num=None):
@@ -1121,29 +868,29 @@ def expand(num=None):
     Display all of a MusicObject's information: songs, artists, and albums.
 
     Keyword arguments:
-    num=None: Index of the MusicObject in the main window to be expanded.
+    num = None: Index of the MusicObject in the main window to be expanded.
     """
     if num is None:  # No argument.
-        out.error_msg('Missing argument to play')
-    elif lib.content is None:  # Nothing to expand.
-        out.error_msg('Wrong context for expand.')
+        w.error_msg('Missing argument to play')
+    elif c.content is None:  # Nothing to expand.
+        w.error_msg('Wrong context for expand.')
     else:
         try:
             num = int(num)
         except ValueError:  # num needs to be an int.
-            out.error_msg('Invalid argument to play')
+            w.error_msg('Invalid argument to play')
         else:
-            if not out.curses:
+            if not w.curses:
                 limit = -1
             else:
                 # Artists only have one artist and albums only have one album,
                 # so we can allocate more space for the other fields.
-                limit = int((out.main.getmaxyx()[0] - 9) / 2)
+                limit = int((w.main.getmaxyx()[0] - 9) / 2)
             item = get_option(num, limit)
 
             if item is not None:  # Valid input.
-                lib.content = item.collect(limit=limit)
-                out.erase_outbar()
+                c.content = item.collect(limit=limit)
+                w.erase_outbar()
 
 
 def help(arg=0):
@@ -1151,18 +898,18 @@ def help(arg=0):
     Display basic pmcli commands.
 
     Keyword arguments:
-    arg=0: Irrelevant.
+    arg = 0: Irrelevant.
     """
-    lib.content = None
-    if not out.curses:
+    c.content = None
+    if not w.curses:
         return
 
     # Don't use generic addstr() because we don't want to call trunc() here.
-    out.main.erase()
-    out.main.addstr(
+    w.main.erase()
+    w.main.addstr(
         """
         Commands:
-        s/search search-term: Search for search-term
+        s/search searchterm: Search for searchterm
         e/expand 123: Expand item number 123
         p/play: Play current queue
         p/play s: Shuffle and play current queue
@@ -1170,14 +917,14 @@ def help(arg=0):
         q/queue: Show current queue
         q/queue 123:  Add item number 123 to queue
         q/queue 1 2 3:  Add items 1, 2, 3 to queue
-        q/queue c:  Clear the current queue
-        w/write file-name: Write current queue to file file-name
-        r/restore file-name: Replace current queue with playlist from file-name
+        q/queue c:  Clear the current queuen
+        w/write filename: Write current queue to filename
+        r/restore filename: Replace current queue with playlist from filename
         h/help: Show this help message
         Ctrl-C: Exit pmcli
         """
     )
-    out.main.refresh()
+    w.main.refresh()
 
 
 def play(arg=None):
@@ -1189,38 +936,38 @@ def play(arg=None):
       or None to play the current queue in order.
     """
     if arg is None or arg is 's':
-        if not queue:  # Can't play an empty queue.
-            out.error_msg('The queue is empty')
+        if not q:  # Can't play an empty queue.
+            w.error_msg('The queue is empty')
         else:  # Play the queue.
             if arg is 's':  # Shuffle.
-                shuffle(queue)
-            if out.curses:
-                limit = out.main.getmaxyx()[0] - 1  # Allow room for header.
+                shuffle(q)
+            if w.curses:
+                limit = w.main.getmaxyx()[0] - 1  # Allow room for header.
             else:
                 limit = -1
-            lib.content = queue.collect(limit)
-            out.display()
-            out.outbar_msg(
+            c.content = queue.collect(limit)
+            w.display()
+            w.outbar_msg(
                 '[spc] pause [q] stop [n] next [9-0] volume [arrows] seek')
-            queue.play()
-            out.erase_outbar()
+            q.play()
+            w.erase_outbar()
 
-    elif lib.content is None:  # Nothing to play.
-        out.error_msg('Wrong context for play')
+    elif c.content is None:  # Nothing to play.
+        w.error_msg('Wrong context for play')
     else:
         try:
             num = int(arg)
         except ValueError:  # arg needs to be an int if it isn't 's'.
-            out.error_msg('Invalid argument to play')
+            w.error_msg('Invalid argument to play')
         else:
             item = get_option(num)
 
             if item is not None:  # Valid input.
-                out.outbar_msg(
+                w.outbar_msg(
                     '[spc] pause [q] stop [n] next [9-0] volume [arrows] seek')
                 item.play()
-                out.now_playing()
-                out.erase_outbar()
+                w.now_playing()
+                w.erase_outbar()
 
 
 def restore(fn=None):
@@ -1228,30 +975,30 @@ def restore(fn=None):
     Restore queue from a file.
 
     Keyword arguments:
-    fn=None: Name of the file containing the playlist.
-      File should be at ~/.local/share/pmcli/playlists/.
+    fn = None: Name of the file containing the playlist.
+      File should be at ~ / .local / share / pmcli / playlists / .
     """
     path = join(expanduser('~'), '.local', 'share', 'pmcli', 'playlists')
     if fn is None:  # No argument.
-        out.error_msg('Missing argument to restore')
+        w.error_msg('Missing argument to restore')
     elif not isfile(join(path, fn)):  # Playlist file doesn't exist.
-        out.error_msg('Playlist %s does not exist' % fn)
+        w.error_msg('Playlist %s does not exist' % fn)
     else:
-        out.outbar_msg('Restoring queue from %s...' % fn)
+        w.outbar_msg('Restoring queue from %s...' % fn)
         try:  # Read the playlist.
             with open(join(path, fn)) as f:
                 json_songs = json.load(f)
         except json.decoder.JSONDecodeError:  # Bad file.
-            out.error_msg('%s is not a valid playlist file' % fn)
+            w.error_msg('%s is not a valid playlist file' % fn)
         else:
             songs = [Song(song, source='json')
                      for song in json_songs if Song.verify(song)]
 
             # Replace the current queue with the playlist.
-            del queue[:]
-            queue.extend(songs)
-            out.outbar_msg('Restored %d songs from playlist %s.' %
-                           (len(songs), fn))
+            del q[:]
+            q.extend(songs)
+            w.outbar_msg('Restored %d songs from playlist %s.' %
+                         (len(songs), fn))
 
 
 def search(query=None):
@@ -1259,23 +1006,23 @@ def search(query=None):
     Search Google Play Music for a given query.
 
     Keyword arguments:
-    query=None: The search query.
+    query = None: The search query.
 
     Returns: A dict of lists with keys 'songs', 'artists', and 'albums'.
     """
     if query is None:  # No argument.
-        out.error_msg('Missing search query')
+        w.error_msg('Missing search query')
         return
 
     # Fetch as many results as we can display depending on terminal height.
-    if out.curses:
-        limit = int((out.main.getmaxyx()[0] - 3) / 3)
+    if w.curses:
+        limit = int((w.main.getmaxyx()[0] - 3) / 3)
     else:
         limit = 50
 
-    out.outbar_msg('Searching for \'%s\'...' % query)
-    result = api.search(query, max_results=limit)
-    out.erase_outbar()
+    w.outbar_msg('Searching for \'%s\'...' % query)
+    result = mc.search(query, max_results=limit)
+    w.erase_outbar()
 
     # 'class' => class of MusicObject
     # 'hits' => key in search result
@@ -1297,14 +1044,14 @@ def search(query=None):
             'key': 'album',
         }
     }
-    lib.content = {'songs': [], 'artists': [], 'albums': []}
-    iters = {k: iter(result[mapping[k]['hits']]) for k in lib.content.keys()}
+    c.content = {'songs': [], 'artists': [], 'albums': []}
+    iters = {k: iter(result[mapping[k]['hits']]) for k in c.content.keys()}
 
     # Create at most 'limit' of each type.
     for i in range(limit):
         for k in iters.keys():
             try:
-                lib.content[k].append(
+                c.content[k].append(
                     mapping[k]['class'](next(iters[k])[mapping[k]['key']]))
             except StopIteration:
                 pass
@@ -1315,25 +1062,22 @@ def write(fn=None):
     Write the current queue to a file.
 
     Keyword arguments:
-    fn=None: File to be written to.
-      File is stored at ~/.local/share/pmcli/playlists/.
+    fn = None: File to be written to.
+      File is stored at ~ / .local / share / pmcli / playlists / .
     """
     path = join(expanduser('~'), '.local', 'share', 'pmcli', 'playlists')
-    if not queue:  # Can't save an empty queue.
-        out.error_msg('Queue is empty')
+    if not q:  # Can't save an empty queue.
+        w.error_msg('Queue is empty')
     elif fn is None:  # No argument.
-        out.error_msg('Missing argument to write')
+        w.error_msg('Missing argument to write')
     elif not exists(path):  # No playlists directory.
-        out.error_msg('Path to playlists does not exist')
+        w.error_msg('Path to playlists does not exist')
     elif exists(join(path, fn)):  # Playlist already exists at path/fn.
-        out.error_msg('Playist %s already exists' % fn)
+        w.error_msg('Playist %s already exists' % fn)
     else:  # Write the playlist.
         with open(join(path, fn), 'a') as f:
-            json.dump(queue, f)
-        out.outbar_msg('Wrote queue to %s.' % fn)
-
-
-# ------------------------- LOGIN STUFF START ------------------------- #
+            json.dump(q, f)
+        w.outbar_msg('Wrote queue to %s.' % fn)
 
 
 def validate_config(config):
@@ -1368,26 +1112,26 @@ def validate_config(config):
 
     # Check if there is any user info.
     if 'user' not in config:
-        out.goodbye('No user info in config file: Exiting.')
+        w.goodbye('No user info in config file: Exiting.')
 
     # Check if there is enough user info.
     if not all([k in config['user'] for k in user_fields]):
-        out.goodbye('Missing user info in config file: Exiting.')
+        w.goodbye('Missing user info in config file: Exiting.')
 
     # Check if there is any colour info.
     if 'colour' in config and 'enable' not in config['colour']:
-        out.goodbye('Missing colour enable flag in config file: Exiting.')
+        w.goodbye('Missing colour enable flag in config file: Exiting.')
     else:
         colour = config['colour']['enable'] == 'yes'
 
     # Check if the colours are valid.
     if colour and not all([c in config['colour'] for c in colour_fields]):
-        out.outbar_msg('One or more colours are missing: Not using colour.')
+        w.outbar_msg('One or more colours are missing: Not using colour.')
         colour = False
         sleep(1.5)
     elif colour and not all([validate_colour(config['colour'][c])
                              for c in colour_fields]):
-        out.outbar_msg('One or more colours are invalid: Not using colour.')
+        w.outbar_msg('One or more colours are invalid: Not using colour.')
         colour = False
         sleep(1.5)
 
@@ -1406,18 +1150,18 @@ def password(config):
       the entered password.
     """
     if not config['user']['password']:
-        if not out.curses:
+        if not w.curses:
             try:
                 config['user']['password'] = getpass()
             except KeyboardInterrupt:
-                out.goodbye('Exiting.')
+                w.goodbye('Exiting.')
         else:
             crs.noecho()  # Don't show the password as it's entered.
-            out.addstr(out.inbar, 'Enter your password: ')
+            w.addstr(w.inbar, 'Enter your password: ')
             try:
-                config['user']['password'] = out.inbar.getstr().decode('utf-8')  # noqa
+                config['user']['password'] = w.inbar.getstr().decode('utf-8')  # noqa
             except KeyboardInterrupt:
-                out.gooodbye('Exiting.')
+                w.gooodbye('Exiting.')
             crs.echo()
 
     return config
@@ -1427,7 +1171,7 @@ def read_config():
     """
     Parses a config file for login information.
       Config file should be located at '~/.config/pmcli/config'
-      with a section called [auth] containing email, password,
+      with a section called[auth] containing email, password,
       and deviceid.
 
     Returns: A dict containing keys 'user' and 'colour''.
@@ -1436,14 +1180,14 @@ def read_config():
     path = join(expanduser('~'), '.config', 'pmcli', 'config.json')
 
     if not isfile(path):
-        out.goodbye('Config file not found at %s: Exiting.' % basename(path))
+        w.goodbye('Config file not found at %s: Exiting.' % basename(path))
 
     with open(path) as f:
         try:
             config = json.load(f)
         except json.decoder.JSONDecodeError:
-            out.goodbye('Invalid config file, please refer to '
-                        'config.example: Exiting.')
+            w.goodbye('Invalid config file, please refer to '
+                      'config.example: Exiting.')
 
     return config
 
@@ -1462,6 +1206,24 @@ def get_windows():
     return main, inbar, infobar, outbar
 
 
+def hex_to_rgb(hex):
+    """
+    Convert a hex colour to(r, g, b).
+
+    Arguments:
+    hex: Hexidecimal colour code, i.e. '#abc123'.
+
+    Returns: (r, g, b) tuple with values 0 - 1000.
+    """
+
+    scalar = 3.9215  # 255 * 3.9215 ~= 1000.
+    r = int(int(hex[1:3], 16) * scalar)
+    g = int(int(hex[3:5], 16) * scalar)
+    b = int(int(hex[5:7], 16) * scalar)
+
+    return (r, g, b)
+
+
 def set_colours(colours):
     """
     Set curses colours.
@@ -1469,24 +1231,6 @@ def set_colours(colours):
     Arguments:
     colours: Dict with colour information.
     """
-
-    def hex_to_rgb(hex):
-        """
-        Convert a hex colour to (r, g, b).
-
-        Arguments:
-        hex: Hexidecimal colour code, i.e. '#abc123'.
-
-        Returns: (r, g, b) tuple with values 0-1000.
-        """
-
-        scalar = 3.9215  # 255 * 3.9215 ~= 1000.
-        r = int(int(hex[1:3], 16) * scalar)
-        g = int(int(hex[3:5], 16) * scalar)
-        b = int(int(hex[5:7], 16) * scalar)
-
-        return (r, g, b)
-
     crs.start_color()
     # Define colours.
     crs.init_color(0, *hex_to_rgb(colours['background']))
@@ -1503,26 +1247,26 @@ def set_colours(colours):
 
     # Set colours.
     crs.start_color()
-    out.main.bkgdset(' ', crs.color_pair(1))
-    out.inbar.bkgdset(' ', crs.color_pair(1))
-    out.infobar.bkgdset(' ', crs.color_pair(2))
-    out.outbar.bkgdset(' ', crs.color_pair(4))
+    w.main.bkgdset(' ', crs.color_pair(1))
+    w.inbar.bkgdset(' ', crs.color_pair(1))
+    w.infobar.bkgdset(' ', crs.color_pair(2))
+    w.outbar.bkgdset(' ', crs.color_pair(4))
 
-    out.refresh()
+    w.refresh()
 
 
 def easy_login():
-    """One-step login for debugging."""
+    """One - step login for debugging."""
     config = (password(read_config()))
     validate_config(config)
     user = config['user']
 
-    if not api.login(user['email'], user['password'], user['deviceid']):
+    if not mc.login(user['email'], user['password'], user['deviceid']):
         print('Login failed: exiting.')
         sys.exit()
     else:
         print('Logged in as %s (%s).' %
-              (user['email'], 'Full' if api.is_subscribed else 'Free'))
+              (user['email'], 'Full' if mc.is_subscribed else 'Free'))
 
 
 def login(user):
@@ -1533,36 +1277,29 @@ def login(user):
     user: Dict containing auth information.
     """
     crs.curs_set(0)
-    out.outbar_msg('Logging in...')
-    if not api.login(user['email'], user['password'], user['deviceid']):
-        out.goodbye('Login failed: Exiting.')
-    out.outbar_msg('Logging in... Logged in as %s (%s).' %
-                   (user['email'], 'Full' if api.is_subscribed else 'Free'))
-
-
-# --------------------------- LOGIN STUFF END --------------------------- #
+    w.outbar_msg('Logging in...')
+    if not mc.login(user['email'], user['password'], user['deviceid']):
+        w.goodbye('Login failed: Exiting.')
+    w.outbar_msg('Logging in... Logged in as %s (%s).' %
+                 (user['email'], 'Full' if mc.is_subscribed else 'Free'))
 
 
 filterwarnings('ignore')
-api = Mobileclient()
-queue = Queue()
-out = Writer(None, None, None, None, curses=False)
+mc = Mobileclient()
+q = Queue()
+w = Writer(None, None, None, None, curses=False)
+c = View()
 
 if __name__ == '__main__':
-    out = Writer(*get_windows())
+    w = Writer(*get_windows())
     config = password(read_config())
     colour = validate_config(config)
     if colour:
         set_colours(config['colour'])
-        out.colour = True
-    out.welcome()
+        w.colour = True
+    w.welcome()
     login(config['user'])
-    out.addstr(out.infobar, 'Enter \'h\' or \'help\' if you need help.')
-    lib = Library(api.is_subscribed)
+    w.addstr(w.infobar, 'Enter \'h\' or \'help\' if you need help.')
 
     while True:
-        transition(out.get_input())
-
-else:
-    easy_login()
-    lib = Library(api.is_subscribed)
+        transition(w.get_input())
