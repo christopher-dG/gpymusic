@@ -2,7 +2,7 @@
 
 Browse and stream Google Play Music from the comfort and familiarity of your favourite terminal.
 
-![screencast]( https://zippy.gfycat.com/SnivelingLavishAtlanticblackgoby.gif "Yes, I'm aware that this is technically a TUI")
+![screencast](https://fat.gfycat.com/MixedCoordinatedAmphibian.gif "Yes, I'm aware that this is technically a TUI")
 
 ## Notice
 As of right now, pmcli only works for users with paid accounts. Until I can explore some alternatives, there is only one option for free users: only being able to access songs that you have either purchased on Google Play or uploaded yourself. **If you have a free account and think that you would actually want to use pmcli in that state, please let me know in an issue.** Until I know that people will actually use it, it wouldn't be worth my time. Sorry!
