@@ -123,8 +123,11 @@ class Writer():
                 print('Welcome to pmcli!')
             return
 
-        self.main.addstr(5, int(crs.COLS / 2) - 9, 'Welcome to pmcli!')
-        self.main.refresh()
+        try:
+            self.main.addstr(5, int(crs.COLS / 2) - 9, 'Welcome to pmcli!')
+            self.main.refresh()
+        except:  # If this errors for some reason, just don't display anything.
+            pass
 
     def goodbye(self, msg):
         """
