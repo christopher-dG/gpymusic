@@ -17,6 +17,7 @@ if __name__ == '__main__':
         print('Login failed, verify your email and password.')
     else:
         devices = api.get_registered_devices()
-        for i, device in enumerate(api.get_registered_devices()):
+        for i, device in enumerate(
+                [d for d in devices if d['kind'] in (u'ANDROID', u'IOS')]):
             id = device['id']
             print('%d: %s' % (i + 1, id[2:]if id.startswith('0x') else id))
