@@ -3,8 +3,10 @@ import music_objects
 import writer
 import songqueue
 import view
+import library
 
 mc = Mobileclient()
+l = library.Library()
 q = songqueue.Queue()
 w = writer.Writer(None, None, None, None, curses=False)
 v = view.View({'songs': [], 'artists': [], 'albums': []})

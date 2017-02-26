@@ -3,4 +3,9 @@ class View(dict):
 
     def __init__(self, d):
         for k in d:
-            self.__setitem__(k, d[k])
+            self[k] = d[k]
+
+    def clear(self):
+        """Clear elements without removing keys."""
+        for k in self.keys():
+            del self[k][:]

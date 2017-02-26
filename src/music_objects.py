@@ -1,4 +1,5 @@
 import consts
+import mutagen
 from os.path import expanduser, isfile, join
 from subprocess import call
 
@@ -232,7 +233,7 @@ class Album(MusicObject):
         func: Function to get data from the api.
 
         Keyword arguments:
-        limit: Irrelevant, we always generate all songs.
+        limit=100: Irrelevant, we always generate all songs.
 
         Returns: A new, full, Album.
         """
@@ -348,3 +349,16 @@ class Song(MusicObject):
         limit=0: Irrelevant.
         """
         return
+
+
+class LibrarySong(MusicObject):
+    def __init__(self, song):
+        super().__init__(song['id'], song['tile'], 'song', False)
+        self['artist'] = song['artist']
+        self['album'] = song['album']
+        # Getting the song length would require us to make an api
+        # call, so we'll leave that until we want to play it.
+        self['time'] = ''
+
+    def fill(self):  # Get length from mutagen.
+        pass

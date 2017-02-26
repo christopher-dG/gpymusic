@@ -21,10 +21,10 @@ def transition(input):
         'help': help,
         'e': expand,
         'expand': expand,
-        's': search,
-        'search': search,
-        'p': play,
-        'play': play,
+        's': search if consts.mc.is_subbed else consts.l.search,
+        'search': search if consts.mc.is_subbed else consts.l.search,
+        'p': play if consts.mc.is_subbed else consts.l.play,
+        'play': play if consts.mc.is_subbed else consts.l.play,
         'q': queue,
         'queue': queue,
         'w': write,
@@ -58,7 +58,7 @@ def get_option(num, limit=-1):
     num: Index of the MusicObject in the main window to be returned.
 
     Keyword argumnents:
-    limit = -1: Number of songs to generate for artists,
+    limit=-1: Number of songs to generate for artists,
       determined by terminal height.
 
     Returns: The MusicObject at index 'num'.
@@ -85,7 +85,7 @@ def queue(arg=None):
     Display the current queue, or add an item to the queue.
 
     Keyword arguments:
-    arg = None: Index of the MusicObject in the main window to add to
+    arg=None: Index of the MusicObject in the main window to add to
       the queue, 'c' to clear the queue, None to display the queue, or
       a space - delimited list of indices to add to the queue, i.e. '1 2 3'.
     """
@@ -146,7 +146,7 @@ def expand(num=None):
     Display all of a MusicObject's information: songs, artists, and albums.
 
     Keyword arguments:
-    num = None: Index of the MusicObject in the main window to be expanded.
+    num=None: Index of the MusicObject in the main window to be expanded.
     """
     if num is None:  # No argument.
         consts.w.error_msg('Missing argument to play')
@@ -176,7 +176,7 @@ def help(arg=0):
     Display basic pmcli commands.
 
     Keyword arguments:
-    arg = 0: Irrelevant.
+    arg=0: Irrelevant.
     """
     consts.v = None
     if not consts.w.curses:
@@ -254,7 +254,7 @@ def restore(fn=None):
     Restore queue from a file.
 
     Keyword arguments:
-    fn = None: Name of the file containing the playlist.
+    fn=None: Name of the file containing the playlist.
       File should be at ~ / .local / share / pmcli / playlists / .
     """
     path = join(expanduser('~'), '.local', 'share', 'pmcli', 'playlists')
@@ -275,12 +275,11 @@ def restore(fn=None):
 
 def search(query=None):
     """
-    Search Google Play Music for a given query.
+    Search Google Play Music for a given query and update the
+      view with the results.
 
     Keyword arguments:
-    query = None: The search query.
-
-    Returns: A dict of lists with keys 'songs', 'artists', and 'albums'.
+    query=None: The search query.
     """
     if query is None:  # No argument.
         consts.w.error_msg('Missing search query')
@@ -317,7 +316,7 @@ def write(fn=None):
     Write the current queue to a file.
 
     Keyword arguments:
-    fn = None: File to be written to.
+    fn=None: File to be written to.
       File is stored at ~ / .local / share / pmcli / playlists / .
     """
     path = join(expanduser('~'), '.local', 'share', 'pmcli', 'playlists')

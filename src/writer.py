@@ -16,9 +16,9 @@ class Writer():
         main/inbar/infobar/outbar: curses windows.
 
         Keyword arguments:
-        curses = True: Flag for disabling curses output.
-        colour = False: Flag for disabling colour output.
-        test = False: Flag to disable all output for unit testing.
+        curses=True: Flag for disabling curses output.
+        colour=False: Flag for disabling colour output.
+        test=False: Flag to disable all output for unit testing.
           If test is True, then curses must be disabled.
         """
         if test and curses:
@@ -86,8 +86,7 @@ class Writer():
           nothing is playing.
 
         Keyword arguments:
-        string = None: Formatted song string.
-        time = None: Length of the song playing.
+        string=None: Formatted song string.
         """
         if self.test:
             return
@@ -180,6 +179,36 @@ class Writer():
             return
         self.addstr(self.outbar, msg)
 
+    def measure_fields(width):
+        """
+        Determine max number of  characters and starting point
+          for category fields.
+
+        Arguments:
+        width: Width of the window being divided.
+
+        Returns: A tuple containing character allocations
+          and start positions.
+        """
+        padding = 1  # Space between fields.
+        i_ch = 3  # Characters to allocate for index.
+        # Width of each name, artist, and album fields.
+        n_ch = ar_ch = al_ch = int((width - i_ch - 3 * padding) / 3)
+        al_ch -= 1  # Hacky guard against overflow.
+
+        total = sum([i_ch, n_ch, ar_ch, al_ch, 3 * padding])
+
+        if total != width:  # Allocate any leftover space to name.
+            n_ch += width - total
+
+        # Field starting x positions.
+        n_start = 0 + i_ch + padding
+        ar_start = n_start + n_ch + padding
+        al_start = ar_start + ar_ch + padding
+
+        return (i_ch, n_ch, ar_ch, al_ch,
+                n_start, ar_start, al_start)
+
     def display(self):
         """Update the main window with some content."""
         c = consts.v
@@ -199,41 +228,11 @@ class Writer():
                     print(str(album))
             return
 
-        def measure_fields(width):
-            """
-            Determine max number of  characters and starting point
-              for category fields.
-
-            Arguments:
-            width: Width of the window being divided.
-
-            Returns: A tuple containing character allocations
-              and start positions.
-            """
-            padding = 1  # Space between fields.
-            i_ch = 3  # Characters to allocate for index.
-            # Width of each name, artist, and album fields.
-            n_ch = ar_ch = al_ch = int((width - i_ch - 3 * padding) / 3)
-            al_ch -= 1  # Hacky guard against overflow.
-
-            total = sum([i_ch, n_ch, ar_ch, al_ch, 3 * padding])
-
-            if total != width:  # Allocate any leftover space to name.
-                n_ch += width - total
-
-            # Field starting x positions.
-            n_start = 0 + i_ch + padding
-            ar_start = n_start + n_ch + padding
-            al_start = ar_start + ar_ch + padding
-
-            return (i_ch, n_ch, ar_ch, al_ch,
-                    n_start, ar_start, al_start)
-
         cl = self.colour
         self.main.erase()
         y, i = 0, 1  # y coordinate in main window, current item index.
         (i_ch, n_ch, ar_ch, al_ch, n_start,
-         ar_start, al_start) = measure_fields(consts.w.main.getmaxyx()[1])
+         ar_start, al_start) = self.measure_fields(consts.w.main.getmaxyx()[1])
 
         # Songs header.
         if 'songs' in c and c['songs']:
