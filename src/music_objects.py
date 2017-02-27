@@ -1,6 +1,7 @@
 import consts
-import mutagen
-from os.path import expanduser, isfile, join
+from mutagen.mp3 import MP3
+from os import remove
+from os.path import isfile, join
 from subprocess import call
 
 
@@ -35,7 +36,7 @@ class MusicObject(dict):
         Returns: None if all songs were played, or the index of the
           first unplayed song to be used in restoring the queue.
         """
-        conf_path = join(expanduser('~'), '.config', 'pmcli', 'mpv_input.conf')
+        conf_path = join(consts.CONFIG_DIR, 'mpv_input.conf')
         if not isfile(conf_path):
             consts.w.goodbye('No mpv_input.conf found.')
         i = 1
@@ -50,12 +51,14 @@ class MusicObject(dict):
             ) == 11:  # 'q' returns this exit code.
                 return i if i < len(songs) else None
             i += 1
+            consts.v['songs'].pop(0)
+            consts.w.display()  # Remove songs from sight after they're played.
 
         return None
 
-    def __hash__(self):
-        """Use ID to hash. This doesn't need to be strong."""
-        return ''.join(str(ord(c)) for c in self['id'])
+    # def __hash__(self):
+    #     """Use ID to hash. This doesn't need to be strong."""
+    #     return ''.join(str(ord(c)) for c in self['id'])
 
 
 class Artist(MusicObject):
@@ -304,7 +307,7 @@ class Song(MusicObject):
         Arguments:
         ms: Number of milliseconds.
 
-        Returns: ms in mm:ss.
+        Returns: String-formatted time period in mm:ss.
         """
         ms = int(ms)
         minutes = str(ms // 60000).zfill(2)
@@ -353,12 +356,65 @@ class Song(MusicObject):
 
 class LibrarySong(MusicObject):
     def __init__(self, song):
-        super().__init__(song['id'], song['tile'], 'song', False)
+        super().__init__(song['id'], song['title'], 'libsong', False)
         self['artist'] = song['artist']
         self['album'] = song['album']
         # Getting the song length would require us to make an api
         # call, so we'll leave that until we want to play it.
         self['time'] = ''
 
-    def fill(self):  # Get length from mutagen.
-        pass
+    def __str__(self):
+        return ' - '.join((self['name'], self['artist'], self['album']))
+
+    @staticmethod
+    def time_from_s(s):
+        """
+        Converts milliseconds into a mm:ss formatted string.
+
+        Arguments:
+        s: Number of seconds.
+
+        Returns: String-formatted time period in mm:ss.
+        """
+        mins = str(s // 60).zfill(2)
+        secs = str(int(s % 60)).zfill(2)
+        return '(%s:%s)' % (mins, secs)
+
+    def play(self):
+        """
+        Play the song.
+
+        Returns: mpv's exit code (0 for next, 11 for stop).
+        """
+        song_path = join(consts.DATA_DIR, 'songs', '%s.mp3' % str(self))
+        conf_path = join(consts.CONFIG_DIR, 'mpv_input.conf')
+        return call(['mpv', '--really-quiet', '--no-video',
+                     '--input-conf', conf_path, song_path])
+
+    def fill(self, func, limit=0):
+        """
+        Download the song, and fill in its length field.
+
+        Arguments:
+        func: Irrelevant.
+
+        Keyword arguments:
+        limit=0: Irrelevant.
+        """
+        path = join(consts.DATA_DIR, 'songs', '%s.mp3' % str(self))
+        dl = False
+        if not isfile(path):
+            consts.w.outbar_msg('Downloading %s...' % str(self))
+            with open(join(consts.DATA_DIR, 'songs', '%s.mp3'
+                           % str(self)), 'wb') as f:
+                f.write(consts.l.mm.download_song(self['id'])[1])
+            self['full'] = True
+            dl = True
+        try:
+            self['time'] = LibrarySong.time_from_s(MP3(path).info.length)
+        except:  # Todo: look into more specific mutagen errors.
+            remove(path)
+            if not dl:  # File might be corrupt, so re-download it.
+                self.fill()
+            else:  # Otherwise we're out of luck.
+                consts.w.outbar_msg('Song could not be downloaded.')

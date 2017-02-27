@@ -1,15 +1,17 @@
 from gmusicapi import Mobileclient
+from os.path import expanduser, join
 import music_objects
 import writer
 import songqueue
 import view
-import library
 
+DATA_DIR = join(expanduser('~'), '.local', 'share', 'pmcli')
+CONFIG_DIR = join(expanduser('~'), '.config', 'pmcli')
+l = None  # Later to be filled in with library.Library()
 mc = Mobileclient()
-l = library.Library()
 q = songqueue.Queue()
 w = writer.Writer(None, None, None, None, curses=False)
-v = view.View({'songs': [], 'artists': [], 'albums': []})
+v = view.View()
 
 
 """
@@ -37,5 +39,11 @@ mapping = {
         'hits': 'album_hits',
         'rslt_key': 'album',
         'lookup': mc.get_album_info,
-    }
+    },
+    'libsongs': {
+        'cls': music_objects.LibrarySong,
+        'hits': '',
+        'rslt_key': '',
+        'lookup': '',
+    },
 }

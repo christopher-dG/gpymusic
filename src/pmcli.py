@@ -2,9 +2,10 @@
 
 import consts
 import json
+import library
 import start
 import view
-from os.path import exists, expanduser, isfile, join
+from os.path import exists, isfile, join
 from random import shuffle
 from warnings import filterwarnings
 
@@ -21,10 +22,10 @@ def transition(input):
         'help': help,
         'e': expand,
         'expand': expand,
-        's': search if consts.mc.is_subbed else consts.l.search,
-        'search': search if consts.mc.is_subbed else consts.l.search,
-        'p': play if consts.mc.is_subbed else consts.l.play,
-        'play': play if consts.mc.is_subbed else consts.l.play,
+        's': search if consts.mc.is_subscribed else consts.l.search,
+        'search': search if consts.mc.is_subscribed else consts.l.search,
+        'p': play if consts.mc.is_subscribed else consts.l.play,
+        'play': play if consts.mc.is_subscribed else consts.l.play,
         'q': queue,
         'queue': queue,
         'w': write,
@@ -148,6 +149,8 @@ def expand(num=None):
     Keyword arguments:
     num=None: Index of the MusicObject in the main window to be expanded.
     """
+    if not consts.mc.is_subscribed:
+        consts.w.error_msg('Free users cannot expand songs.')
     if num is None:  # No argument.
         consts.w.error_msg('Missing argument to play')
     elif consts.v is None:  # Nothing to expand.
@@ -257,7 +260,7 @@ def restore(fn=None):
     fn=None: Name of the file containing the playlist.
       File should be at ~ / .local / share / pmcli / playlists / .
     """
-    path = join(expanduser('~'), '.local', 'share', 'pmcli', 'playlists')
+    path = join(consts.DATA_DIR, 'playlists')
     if fn is None:  # No argument.
         consts.w.error_msg('Missing argument to restore')
     elif not isfile(join(path, fn)):  # Playlist file doesn't exist.
@@ -298,7 +301,10 @@ def search(query=None):
     # 'class' => class of MusicObject
     # 'hits' => key in search result
     # 'rslt_key' => per-entry key in search result
-    consts.v = view.View({'songs': [], 'artists': [], 'albums': []})
+    if consts.v is not None:
+        consts.v.clear()
+    else:
+        consts.v = view.View({'songs': [], 'artist': [], 'albums': []})
     iters = {k: iter(result[consts.mapping[k]['hits']])
              for k in consts.v.keys()}
     # Create at most 'limit' of each type.
@@ -309,6 +315,7 @@ def search(query=None):
                     next(iters[k])[consts.mapping[k]['rslt_key']]))
             except StopIteration:
                 pass
+    consts.w.outbar_msg('Search returned %d results.' % len(consts.v))
 
 
 def write(fn=None):
@@ -319,7 +326,7 @@ def write(fn=None):
     fn=None: File to be written to.
       File is stored at ~ / .local / share / pmcli / playlists / .
     """
-    path = join(expanduser('~'), '.local', 'share', 'pmcli', 'playlists')
+    path = join(consts.DATA_DIR, 'playlists')
     if not consts.q:  # Can't save an empty queue.
         consts.w.error_msg('Queue is empty')
     elif fn is None:  # No argument.
@@ -347,6 +354,8 @@ if __name__ == '__main__':
         consts.w.colour = True
     consts.w.welcome()
     start.login(config['user'])
+    if not consts.mc.is_subscribed:
+        consts.l = library.Library()
     consts.w.addstr(consts.w.infobar,
                     'Enter \'h\' or \'help\' if you need help.')
 

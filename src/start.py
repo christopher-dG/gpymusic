@@ -1,7 +1,7 @@
 import curses as crs
 import consts
 from getpass import getpass
-from os.path import basename, expanduser, isfile, join
+from os.path import basename, isfile, join
 from time import sleep
 import json
 import sys
@@ -106,9 +106,7 @@ def read_config():
 
     Returns: A dict containing keys 'user' and 'colour''.
     """
-
-    path = join(expanduser('~'), '.config', 'pmcli', 'config.json')
-
+    path = join(consts.CONFIG_DIR, 'config.json')
     if not isfile(path):
         consts.w.goodbye('Config file not found at %s: Exiting.' %
                          basename(path))

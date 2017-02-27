@@ -141,6 +141,9 @@ class Writer():
             sys.exit()
 
         self.addstr(self.outbar, msg)
+        consts.mc.logout()
+        if consts.l is not None:
+            consts.l.mm.logout()
         sleep(2)
         crs.curs_set(1)
         crs.endwin()
@@ -179,7 +182,7 @@ class Writer():
             return
         self.addstr(self.outbar, msg)
 
-    def measure_fields(width):
+    def measure_fields(self, width):
         """
         Determine max number of  characters and starting point
           for category fields.
@@ -258,12 +261,20 @@ class Writer():
                 self.main.addstr(
                     y, n_start, Writer.trunc(song['name'], n_ch),
                     crs.color_pair(3 if y % 2 == 0 else 4) if cl else 0)
-                self.main.addstr(
-                    y, ar_start, Writer.trunc(song['artist']['name'], ar_ch),
-                    crs.color_pair(3 if y % 2 == 0 else 4) if cl else 0)
-                self.main.addstr(
-                    y, al_start, Writer.trunc(song['album']['name'], al_ch),
-                    crs.color_pair(3 if y % 2 == 0 else 4) if cl else 0)
+                if song['kind'] == 'song':
+                    self.main.addstr(
+                        y, ar_start, Writer.trunc(song['artist']['name'], ar_ch),  # noqa
+                        crs.color_pair(3 if y % 2 == 0 else 4) if cl else 0)
+                    self.main.addstr(
+                        y, al_start, Writer.trunc(song['album']['name'], al_ch),  # noqa
+                        crs.color_pair(3 if y % 2 == 0 else 4) if cl else 0)
+                else:
+                    self.main.addstr(
+                        y, ar_start, Writer.trunc(song['artist'], ar_ch),
+                        crs.color_pair(3 if y % 2 == 0 else 4) if cl else 0)
+                    self.main.addstr(
+                        y, al_start, Writer.trunc(song['album'], al_ch),
+                        crs.color_pair(3 if y % 2 == 0 else 4) if cl else 0)
 
                 y += 1
                 i += 1

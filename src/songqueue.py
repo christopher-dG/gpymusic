@@ -22,7 +22,7 @@ class Queue(list):
         if item['kind'] == 'album':
             super().extend(item['songs'])
             return len(item['songs'])
-        elif item['kind'] == 'song':
+        elif item['kind'] in ('song', 'libsong'):
             super().append(item)
             return 1
         else:
