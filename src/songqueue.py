@@ -57,9 +57,22 @@ class Queue(list):
         """Play the queue. If playback is halted, restore unplayed items."""
         cache = self[:]
         del self[:]
-        index = MusicObject.play(cache)
+        l = len(cache)
+        # Wow, this got really ugly thanks to libraries ._.
+        if cache[0]['kind'] == 'libsong':  # Playing library songs.
+            for i in range(l):
+                s = cache.pop(0)
+                consts.w.now_playing('(%d/%d) %s (%s)' %
+                                     (i + 1, l, str(s), s['time']))
+                if s.play() is 11:
+                    self.extend(cache)
+                    break
+
+        else:  # Streaming songs.
+            index = MusicObject.play(cache)
+            self.extend(cache[index:])
         consts.w.now_playing()
-        self.extend(cache[index:])
+        consts.w.erase_outbar()
 
     def restore(self, json):
         songs = [

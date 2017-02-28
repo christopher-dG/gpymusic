@@ -28,7 +28,7 @@ class View(dict):
 
         Returns: Sum of each key's length.
         """
-        return sum(self[k] for k in self)
+        return sum(len(self[k]) for k in self)
 
     def clear(self):
         """Clear elements without removing keys."""

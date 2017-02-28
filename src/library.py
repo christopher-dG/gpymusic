@@ -18,9 +18,10 @@ class Library(dict):
           library or generate one.
         """
         self.mm = Musicmanager()
-        if not self.mm.login():  # How to hide warning?
-            self.mm.perform_oauth()
-            self.mm.login()
+        if not self.mm.login():
+            consts.w.erase_outbar()  # Why is this not working?
+            consts.w.goodbye('Musicmanager login failed: did you run '
+                             'oauth_login.py? Exiting.')
         self['songs'] = []
         self.load_library() or self.gen_library()
 
@@ -28,27 +29,35 @@ class Library(dict):
         path = join(consts.DATA_DIR, 'library.zip')
         consts.w.outbar_msg('Loading library...')
         if not isfile(path):
+            consts.w.addstr(consts.w.infobar, 'Could not find library file.')
             return False
-        # Todo: Inform the user about what went wrong before regenerating.
         try:
             with zipfile.ZipFile(path) as z:
                 try:
                     lib = json.loads(z.read('library.json').decode('utf-8'))
-                except json.JSONDecodeError:  # The .json file is invalid.
+                except json.JSONDecodeError:  # The .json file is invalid
+                    consts.w.addstr(consts.w.infobar,
+                                    'Library file is corrupt.')
                     return False
         except zipfile.BadZipFile:  # The .zip file is invalid.
+            consts.w.addstr(consts.w.infobar, 'Library file is corrupt.')
             return False
 
         for item in lib['songs']:
             try:
-                self['songs'].append(consts.mapping['libsongs']['cls'](item))
+                self['songs'].append(
+                    consts.mapping['libsongs']['cls'](item, source='json'))
             except KeyError:  # The file has the wrong data.
+                consts.w.addstr(consts.w.infobar, 'Library file is corrupt.')
                 return False
 
+        l = len(self['songs'])
+        consts.w.outbar_msg('Loaded %s song%s.' % (l, '' if l == 1 else 's'))
         return True
 
     def gen_library(self):
         ids = []
+        consts.w.outbar_msg('Generating your library...')
         for song in self.mm.get_uploaded_songs():
             if song['id'] not in ids:
                 self['songs'].append(LibrarySong(song))
@@ -59,6 +68,9 @@ class Library(dict):
                 ids.append(song['id'])
         with zipfile.ZipFile(join(consts.DATA_DIR, 'library.zip'), 'w') as z:
             z.writestr('library.json', json.dumps(self))
+        l = len(self['songs'])
+        consts.w.outbar_msg('Generated %d song%s.' %
+                            (l, '' if l == 1 else 's'))
 
     def search(self, query):
         """
@@ -74,7 +86,7 @@ class Library(dict):
             return
 
         if consts.w.curses:
-            limit = int((consts.w.main.getmaxyx()[0] - 3) / 3)
+            limit = consts.w.main.getmaxyx()[0] - 4
         else:
             limit = 50
         consts.w.outbar_msg('Searching for \'%s\'...' % query)
@@ -99,14 +111,9 @@ class Library(dict):
             else:
                 if arg is 's':  # Shuffle.
                     shuffle(consts.q)
-                i = 1
-                for song in consts.q:
-                    consts.w.now_playing(
-                        '(%d/%d) %s (%s)' %
-                        (i, len(consts.q), str(song), song['time']))
-                    if song.play() == 11:
-                        break
-                    i += 1
+                consts.w.outbar_msg(
+                    '[spc] pause [q] stop [n] next [9-0] volume [arrows] seek')
+                consts.q.play()
             return
         if consts.v is None:  # Nothing to play.
             consts.w.error_msg('Wrong context for play')
@@ -117,11 +124,12 @@ class Library(dict):
         except ValueError:  # arg needs to be an int if it isn't 's'.
             consts.w.error_msg('Invalid argument to play.')
         else:
-            item = get_option(num)
+            item = get_option(num)  # This call will download the song.
 
             if item is not None:  # Valid input.
                 consts.w.outbar_msg(
                     '[spc] pause [q] stop [n] next [9-0] volume [arrows] seek')
+                consts.w.now_playing(str(item))
                 item.play()
                 consts.w.now_playing()
                 consts.w.erase_outbar()

@@ -5,7 +5,14 @@ Browse and stream Google Play Music from the comfort and familiarity of your fav
 ![screencast](https://fat.gfycat.com/MixedCoordinatedAmphibian.gif "Yes, I'm aware that this is technically a TUI")
 
 ## Notice
-As of right now, pmcli only works for users with paid accounts. Until I can explore some alternatives, there is only one option for free users: only being able to access songs that you have either purchased on Google Play or uploaded yourself. **If you have a free account and think that you would actually want to use pmcli in that state, please let me know in an issue.** Until I know that people will actually use it, it wouldn't be worth my time. Sorry!
+**pmcli for free users is now in [develop](https://github.com/christopher-dg/pmcli/tree/develop)!**
+
+Notes for free users:
+
+- A one-time OAuth sign-in is required, run `script/oauth_login.py` to authorize.
+- Free users only get access to their uploaded or puchased songs, and they must be downloaded rather than streamed.
+- If you don't want to wait for songs to download, you can download them all in one go with `script/download_all.py`. Songs are kept in `~/.local/share/pmcli/songs`.
+- I don't have enough music uploaded to my free account to properly test it, so expect bugs and crashes, and please open issues about them.
 
 ## Dependencies
 

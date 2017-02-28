@@ -66,7 +66,6 @@ def get_option(num, limit=-1):
     """
     total = sum(len(consts.v[k]) for k in consts.v.keys())
     if num < 0 or num > total:
-        p
         consts.w.error_msg('Index out of range: valid between 1-%d' % total)
         return None
 
@@ -151,6 +150,7 @@ def expand(num=None):
     """
     if not consts.mc.is_subscribed:
         consts.w.error_msg('Free users cannot expand songs.')
+        return
     if num is None:  # No argument.
         consts.w.error_msg('Missing argument to play')
     elif consts.v is None:  # Nothing to expand.
@@ -232,7 +232,6 @@ def play(arg=None):
             consts.w.outbar_msg(
                 '[spc] pause [q] stop [n] next [9-0] volume [arrows] seek')
             consts.q.play()
-            consts.w.erase_outbar()
 
     elif consts.v is None:  # Nothing to play.
         consts.w.error_msg('Wrong context for play')

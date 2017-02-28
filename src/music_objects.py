@@ -355,8 +355,24 @@ class Song(MusicObject):
 
 
 class LibrarySong(MusicObject):
-    def __init__(self, song):
-        super().__init__(song['id'], song['title'], 'libsong', False)
+    """An uploaded or purchased song from a user's library."""
+
+    def __init__(self, song, source='api'):
+        """
+        Create a new LibrarySong.
+
+        Arguments:
+        song: Dict with a song's information.
+
+        Keyword arguments:
+        source='api': The source of the argument dict, which changes how
+          we initialize the song.
+        """
+        super().__init__(
+            song['id'],
+            song['title' if source == 'api' else 'name'],
+            'libsong', False
+        )
         self['artist'] = song['artist']
         self['album'] = song['album']
         # Getting the song length would require us to make an api
@@ -364,6 +380,11 @@ class LibrarySong(MusicObject):
         self['time'] = ''
 
     def __str__(self):
+        """
+        Format a library song into a string.
+
+        Returns: The song title, artist name, and album name.
+        """
         return ' - '.join((self['name'], self['artist'], self['album']))
 
     @staticmethod
@@ -378,7 +399,7 @@ class LibrarySong(MusicObject):
         """
         mins = str(s // 60).zfill(2)
         secs = str(int(s % 60)).zfill(2)
-        return '(%s:%s)' % (mins, secs)
+        return '%s:%s' % (mins, secs)
 
     def play(self):
         """
