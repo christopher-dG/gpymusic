@@ -1,5 +1,5 @@
-from music_objects import MusicObject, Song
-import consts
+import common
+import music_objects
 
 
 class Queue(list):
@@ -62,23 +62,24 @@ class Queue(list):
         if cache[0]['kind'] == 'libsong':  # Playing library songs.
             for i in range(l):
                 s = cache.pop(0)
-                consts.w.now_playing('(%d/%d) %s (%s)' %
+                common.w.now_playing('(%d/%d) %s (%s)' %
                                      (i + 1, l, str(s), s['time']))
                 if s.play() is 11:
                     self.extend(cache)
                     break
 
         else:  # Streaming songs.
-            index = MusicObject.play(cache)
+            index = music_objects.MusicObject.play(cache)
             self.extend(cache[index:])
-        consts.w.now_playing()
-        consts.w.erase_outbar()
+        common.w.now_playing()
+        common.w.erase_outbar()
 
     def restore(self, json):
         songs = [
-            Song(song, source='json')
-            for song in json if Song.verify(song)
+            music_objects.mapping[song['kind'] + 's']['cls'](
+                song, source='json')
+            for song in json if music_objects.Song.verify(song)
         ]
         del self[:]
         self.extend(songs)
-        consts.w.outbar_msg('Restored %d songs from playlist.' % len(self))
+        common.w.outbar_msg('Restored %d songs from playlist.' % len(self))

@@ -1,6 +1,6 @@
 import curses as crs
 from time import sleep
-import consts
+import common
 import sys
 
 
@@ -33,6 +33,8 @@ class Writer():
         self.curses = curses
         self.colour = colour
         self.test = test
+        self.xlimit = self.main.getmaxyx()[1] if main is not None else 0
+        self.ylimit = self.main.getmaxyx()[0] if main is not None else 0
 
     @staticmethod
     def trunc(string, ch):
@@ -52,6 +54,14 @@ class Writer():
         else:
             return string[:-((len(string) - ch) + 3)] + '...'
 
+    def replace_windows(self, main, inbar, infobar, outbar):
+        self.main = main
+        self.inbar = inbar
+        self.infobar = infobar
+        self.outbar = outbar
+        self.ylimit = self.main.getmaxyx()[0]
+        self.xlimit = self.main.getmaxyx()[1]
+
     def addstr(self, win, string):
         """
         Replace the contents of a window with a new string.
@@ -67,7 +77,7 @@ class Writer():
             return
 
         win.erase()
-        win.addstr(Writer.trunc(string, win.getmaxyx()[1] - 1))
+        win.addstr(Writer.trunc(string, self.xlimit - 1))
         win.refresh()
 
     def refresh(self):
@@ -141,9 +151,7 @@ class Writer():
             sys.exit()
 
         self.addstr(self.outbar, msg)
-        consts.mc.logout()
-        if consts.l is not None:
-            consts.l.mm.logout()
+        common.mc.logout()
         sleep(2)
         crs.curs_set(1)
         crs.endwin()
@@ -214,7 +222,7 @@ class Writer():
 
     def display(self):
         """Update the main window with some content."""
-        c = consts.v
+        c = common.v
         if not self.curses:
             if not self.test:
                 if 'songs' in c and c['songs']:
@@ -235,7 +243,7 @@ class Writer():
         self.main.erase()
         y, i = 0, 1  # y coordinate in main window, current item index.
         (i_ch, n_ch, ar_ch, al_ch, n_start,
-         ar_start, al_start) = self.measure_fields(consts.w.main.getmaxyx()[1])
+         ar_start, al_start) = self.measure_fields(self.xlimit)
 
         # Songs header.
         if 'songs' in c and c['songs']:
@@ -284,7 +292,7 @@ class Writer():
             self.main.addstr(
                 y, 0, '#', crs.color_pair(2) if cl else crs.A_UNDERLINE)
             self.main.addstr(
-                y, n_start, Writer.trunc('Artist', n_ch),
+                y, ar_start, Writer.trunc('Artist', n_ch),
                 crs.color_pair(2) if cl else crs.A_UNDERLINE)
 
             y += 1

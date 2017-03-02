@@ -6,13 +6,12 @@ class View(dict):
         View constructor.
 
         Keyword arguments:
-        d=None: Dictionary values to initialize the view with. If not
-          supplied, keys 'songs', 'artists' and 'albums' are created
-          with empty lists as values.
+        d=None: Initial keys and values to initialize the view with.
+          Regardless of the value of d, keys 'songs', 'artists' and
+          'albums' are created with empty lists as default values.
         """
-        if d is None:
-            self['songs'], self['artists'], self['albums'] = [], [], []
-        else:
+        self['songs'], self['artists'], self['albums'] = [], [], []
+        if d is not None:
             for k in d:
                 self[k] = d[k]
 
@@ -29,6 +28,10 @@ class View(dict):
         Returns: Sum of each key's length.
         """
         return sum(len(self[k]) for k in self)
+
+    def replace(self, other):
+        """Replace the view's contents with some other dict."""
+        self = self.__init__(other)
 
     def clear(self):
         """Clear elements without removing keys."""

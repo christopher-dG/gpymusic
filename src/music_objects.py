@@ -1,4 +1,5 @@
-import consts
+import common
+
 from mutagen.mp3 import MP3
 from os import remove
 from os.path import isfile, join
@@ -36,29 +37,29 @@ class MusicObject(dict):
         Returns: None if all songs were played, or the index of the
           first unplayed song to be used in restoring the queue.
         """
-        conf_path = join(consts.CONFIG_DIR, 'mpv_input.conf')
+        conf_path = join(common.CONFIG_DIR, 'mpv_input.conf')
         if not isfile(conf_path):
-            consts.w.goodbye('No mpv_input.conf found.')
-        i = 1
+            common.w.goodbye('No mpv_input.conf found.')
 
+        common.v.replace({'songs': songs})
+        common.w.display()
+        i = 1
         for song in songs:
-            url = consts.mc.get_stream_url(song['id'])
-            consts.w.now_playing('(%d/%d) %s (%s)' %
-                                 (i, len(songs), str(song), song['time']))
+            url = common.mc.get_stream_url(song['id'])
+            common.w.now_playing(
+                '(%d/%d) %s (%s)' %
+                (i, len(songs), str(song), song['time'])
+            )
 
             if call(
                     ['mpv', '--really-quiet', '--input-conf', conf_path, url]
             ) == 11:  # 'q' returns this exit code.
-                return i if i < len(songs) else None
+                return i
             i += 1
-            consts.v['songs'].pop(0)
-            consts.w.display()  # Remove songs from sight after they're played.
+            common.v['songs'].pop(0)
+            common.w.display()  # Remove songs from sight after they're played.
 
-        return None
-
-    # def __hash__(self):
-    #     """Use ID to hash. This doesn't need to be strong."""
-    #     return ''.join(str(ord(c)) for c in self['id'])
+        return i
 
 
 class Artist(MusicObject):
@@ -89,10 +90,12 @@ class Artist(MusicObject):
 
         elif source == 'json':
             super().__init__(artist['id'], artist['name'], 'artist', full)
-            self['songs'] = [Song(song, source='json')
-                             for song in artist['songs']]
-            self['albums'] = [Album(album, source='json')
-                              for album in artist['albums']]
+            self['songs'] = [
+                Song(song, source='json') for song in artist['songs']
+            ]
+            self['albums'] = [
+                Album(album, source='json') for album in artist['albums']
+            ]
 
     @staticmethod
     def verify(item):
@@ -104,8 +107,10 @@ class Artist(MusicObject):
 
         Returns: Whether or not the item contains sufficient data.
         """
-        return all(k in item for k in
-                   ('id', 'name', 'kind', 'full', 'songs', 'albums'))
+        return all(
+            k in item for k in
+            ('id', 'name', 'kind', 'full', 'songs', 'albums')
+        )
 
     def __str__(self):
         """
@@ -118,7 +123,7 @@ class Artist(MusicObject):
     def play(self):
         """Play an artist's song list."""
         if not self['full']:
-            self.fill(consts.mapping['artists']['lookup'])
+            self.fill(mapping['artists']['lookup'])
         MusicObject.play(self['songs'])
 
     def collect(self, limit=20):
@@ -150,6 +155,7 @@ class Artist(MusicObject):
         """
         if self['full']:
             return
+
         data = func(self['id'], max_top_tracks=limit)
         self['songs'] = [Song(song) for song in data['topTracks']]
         self['albums'] = [Album(album) for album in data['albums']]
@@ -174,7 +180,8 @@ class Album(MusicObject):
         if source == 'api':
             super().__init__(album['albumId'], album['name'], 'album', full)
             self['artist'] = Artist({
-                'artistId': album['artistId'][0], 'name': album['artist']})
+                'artistId': album['artistId'][0], 'name': album['artist']
+            })
             try:
                 self['songs'] = [Song(s) for s in album['tracks']]
             except KeyError:
@@ -183,8 +190,9 @@ class Album(MusicObject):
         elif source == 'json':
             super().__init__(album['id'], album['name'], 'album', full)
             self['artist'] = Artist(album['artist'], source='json')
-            self['songs'] = [Song(song, source='json')
-                             for song in album['songs']]
+            self['songs'] = [
+                Song(song, source='json') for song in album['songs']
+            ]
 
     @staticmethod
     def verify(item):
@@ -209,7 +217,7 @@ class Album(MusicObject):
     def play(self):
         """Play an album's song list."""
         if not self['full']:
-            self.fill(consts.mapping['albums']['lookup'])
+            self.fill(mapping['albums']['lookup'])
         MusicObject.play(self['songs'])
 
     def collect(self, limit=20):
@@ -407,8 +415,8 @@ class LibrarySong(MusicObject):
 
         Returns: mpv's exit code (0 for next, 11 for stop).
         """
-        song_path = join(consts.DATA_DIR, 'songs', '%s.mp3' % str(self))
-        conf_path = join(consts.CONFIG_DIR, 'mpv_input.conf')
+        song_path = join(common.DATA_DIR, 'songs', '%s.mp3' % str(self))
+        conf_path = join(common.CONFIG_DIR, 'mpv_input.conf')
         return call(['mpv', '--really-quiet', '--no-video',
                      '--input-conf', conf_path, song_path])
 
@@ -422,13 +430,13 @@ class LibrarySong(MusicObject):
         Keyword arguments:
         limit=0: Irrelevant.
         """
-        path = join(consts.DATA_DIR, 'songs', '%s.mp3' % str(self))
+        path = join(common.DATA_DIR, 'songs', '%s.mp3' % str(self))
         dl = False
         if not isfile(path):
-            consts.w.outbar_msg('Downloading %s...' % str(self))
-            with open(join(consts.DATA_DIR, 'songs', '%s.mp3'
+            common.w.outbar_msg('Downloading %s...' % str(self))
+            with open(join(common.DATA_DIR, 'songs', '%s.mp3'
                            % str(self)), 'wb') as f:
-                f.write(consts.l.mm.download_song(self['id'])[1])
+                f.write(common.l.mm.download_song(self['id'])[1])
             self['full'] = True
             dl = True
         try:
@@ -438,4 +446,39 @@ class LibrarySong(MusicObject):
             if not dl:  # File might be corrupt, so re-download it.
                 self.fill()
             else:  # Otherwise we're out of luck.
-                consts.w.outbar_msg('Song could not be downloaded.')
+                common.w.outbar_msg('Song could not be downloaded.')
+
+
+"""
+Music object mapping:
+cls: Class name of each type.
+hits: Key in mc.search() results.
+rslt_key: Key in an individual entry from mc.search()
+lookup: method to retrieve object information
+"""
+mapping = {
+    'songs': {
+        'cls': Song,
+        'hits': 'song_hits',
+        'rslt_key': 'track',
+        'lookup': common.mc.get_track_info,
+    },
+    'artists': {
+        'cls': Artist,
+        'hits': 'artist_hits',
+        'rslt_key': 'artist',
+        'lookup': common.mc.get_artist_info,
+    },
+    'albums': {
+        'cls': Album,
+        'hits': 'album_hits',
+        'rslt_key': 'album',
+        'lookup': common.mc.get_album_info,
+    },
+    'libsongs': {
+        'cls': LibrarySong,
+        'hits': '',
+        'rslt_key': '',
+        'lookup': '',
+    },
+}
