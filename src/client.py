@@ -266,6 +266,7 @@ class Client:
             num = int(arg)
         except ValueError:  # arg needs to be an int if it isn't 's'.
             common.w.error_msg('Invalid argument to play')
+
         else:
             item = self.get_option(num)
 
@@ -273,6 +274,10 @@ class Client:
                 common.w.outbar_msg(
                     '[spc] pause [q] stop [n] next [9-0] volume [arrows] seek'
                 )
+                if item['kind'] == 'libsong':  # This is hacky and bad.
+                    common.w.now_playing(
+                        '(1/1) %s (%s)' % (str(item), item['time'])
+                    )
                 item.play()
                 common.w.now_playing()
                 common.w.erase_outbar()
