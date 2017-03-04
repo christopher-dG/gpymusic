@@ -403,14 +403,14 @@ class LibrarySong(MusicObject):
     @staticmethod
     def time_from_s(s):
         """
-        Converts milliseconds into a mm:ss formatted string.
+        Converts seconds into a mm:ss formatted string.
 
         Arguments:
         s: Number of seconds.
 
         Returns: String-formatted time period in mm:ss.
         """
-        mins = str(s // 60).zfill(2)
+        mins = str(int(s // 60)).zfill(2)
         secs = str(int(s % 60)).zfill(2)
         return '%s:%s' % (mins, secs)
 
