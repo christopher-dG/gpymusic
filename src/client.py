@@ -328,7 +328,7 @@ class FreeClient(Client):
         l = len(self.songs)
         common.w.outbar_msg('Loaded %s song%s.' % (l, '' if l is 1 else 's'))
 
-    def gen_library(self, mm):
+    def gen_library(self):
         ids = []  # Avoid duplicates between purchased and uploaded songs.
         common.w.outbar_msg('Generating your library...')
 
