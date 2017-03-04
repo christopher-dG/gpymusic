@@ -46,27 +46,30 @@ class Queue(list):
 
         Keyword arguments:
         limit=-1: Max number of queue items to display, determined by
-          terminal height.
+          terminal height. -1 indicates no limit.
 
         Returns: A dict with key 'songs'.
         """
-        return {'songs':
-                self[:min(limit, len(self)) if limit != -1 else len(self)]}
+        return {
+            'songs': self[:min(limit, len(self)) if limit != -1 else len(self)]
+        }
 
     def play(self):
         """Play the queue. If playback is halted, restore unplayed items."""
         cache = self[:]
         del self[:]
         l = len(cache)
-        # Wow, this got really ugly thanks to libraries ._.
         if cache[0]['kind'] == 'libsong':  # Playing library songs.
             for i in range(l):
                 s = cache.pop(0)
-                common.w.now_playing('(%d/%d) %s (%s)' %
-                                     (i + 1, l, str(s), s['time']))
+                common.w.now_playing(
+                    '(%d/%d) %s (%s)' % (i + 1, l, str(s), s['time'])
+                )
+                common.v['songs'].pop(0)
                 if s.play() is 11:
                     self.extend(cache)
                     break
+                common.w.display()
 
         else:  # Streaming songs.
             index = music_objects.MusicObject.play(cache)
@@ -77,8 +80,8 @@ class Queue(list):
     def restore(self, json):
         songs = [
             music_objects.mapping[song['kind'] + 's']['cls'](
-                song, source='json')
-            for song in json if music_objects.Song.verify(song)
+                song, source='json'
+            ) for song in json if music_objects.Song.verify(song)
         ]
         del self[:]
         self.extend(songs)

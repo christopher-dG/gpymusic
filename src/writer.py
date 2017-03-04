@@ -225,18 +225,22 @@ class Writer():
         c = common.v
         if not self.curses:
             if not self.test:
+                i = 1
                 if 'songs' in c and c['songs']:
                     print('Songs:')
                 for song in c['songs']:
-                    print(str(song))
+                    print('%d: %s' % (i, str(song)))
+                    i += 1
                 if 'artists' in c and c['artists']:
                     print('Artists:')
                 for artist in c['artists']:
-                    print(str(artist))
+                    print('%d: %s' % (i, str(artist)))
+                    i += 1
                 if 'albums' in c and c['albums']:
                     print('Albums:')
                 for album in c['albums']:
-                    print(str(album))
+                    print('%d: %s' % (i, str(album)))
+                    i += 1
             return
 
         cl = self.colour

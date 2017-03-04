@@ -12,8 +12,11 @@ class View(dict):
         """
         self['songs'], self['artists'], self['albums'] = [], [], []
         if d is not None:
-            for k in d:
-                self[k] = d[k]
+            if isinstance(d, dict):
+                for k in d:
+                    self[k] = d[k]
+            else:
+                raise TypeError('Initializing View with invalid argument')
 
     def __setitem__(self, key, val):
         """Restrict values to lists only."""
@@ -22,11 +25,7 @@ class View(dict):
         super().__setitem__(key, val)
 
     def __len__(self):
-        """
-        Get the total number of elements.
-
-        Returns: Sum of each key's length.
-        """
+        """Return the sum of each list's length."""
         return sum(len(self[k]) for k in self)
 
     def replace(self, other):
@@ -37,3 +36,7 @@ class View(dict):
         """Clear elements without removing keys."""
         for k in self.keys():
             del self[k][:]
+
+    def is_empty(self):
+        """Returns whether or not the view is empty."""
+        return all(not self[k] for k in self)

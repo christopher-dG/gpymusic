@@ -16,8 +16,8 @@ class Client:
     def transition(self):
         """Route input to the appropriate function."""
         commands = {
-            'h': help,
-            'help': help,
+            'h': self.help,
+            'help': self.help,
             'e': self.expand,
             'expand': self.expand,
             's': self.search,
@@ -33,19 +33,23 @@ class Client:
         }
 
         arg = None
-        if common.v is None:
+        if common.v.is_empty():
+            common.w.addstr(
+                common.w.infobar,
+                'Enter \'h\' or \'help\' if you need help.'
+            )
+        else:
             common.w.now_playing()
 
         user_input = common.w.get_input()
         try:
-            command, arg = user_input.split(maxsplit=1)
+            command, arg = (s.strip() for s in user_input.split(maxsplit=1))
         except ValueError:  # No argument.
-            command = user_input
+            command = user_input.strip()
 
         if command in commands:
             commands[command](arg)
-            if common.v is not None:
-                common.w.display()
+            common.w.display()
         else:
             common.w.error_msg('Nonexistent command')
 
@@ -153,7 +157,7 @@ class Client:
                     common.w.error_msg('Wrong context for queue')
             return
 
-        if arg is 'c':  # Clear the queue.
+        if arg in ('c', 'C'):  # Clear the queue.
             del common.q[:]
             common.w.outbar_msg('Cleared queue.')
             return
@@ -174,7 +178,7 @@ class Client:
                 )
                 common.w.outbar_msg(
                     'Added %d song%s to the queue.' %
-                    (count, '' if count == 1 else 's')
+                    (count, '' if count is 1 else 's')
                 )
 
         else:
@@ -192,7 +196,7 @@ class Client:
                     count = common.q.append(item)
                     common.w.outbar_msg(
                         'Added %d song%s to the queue.' %
-                        (count, '' if count == 1 else 's')
+                        (count, '' if count is 1 else 's')
                     )
 
     def get_option(self, num, limit=-1):
@@ -236,7 +240,7 @@ class Client:
         arg=None: n to play item n, 's' to play the queue in shuffle mode,
           or None to play the current queue in order.
         """
-        if arg is None or arg is 's':
+        if arg is None or arg in ('s', 'S'):
             if not common.q:  # Can't play an empty queue.
                 common.w.error_msg('The queue is empty')
             else:  # Play the queue.
@@ -254,7 +258,7 @@ class Client:
                 common.q.play()
             return
 
-        if common.v is None:  # Nothing to play.
+        if common.v.is_empty():  # Nothing to play.
             common.w.error_msg('Wrong context for play')
             return
 
@@ -281,18 +285,18 @@ class FreeClient(Client):
       or uploaded, and they must be downloaded before they can be played.
       Artists and albums cannot be generated, so the expand method has no use.
     """
- 
+    mm = Musicmanager()
+
     def __init__(self):
         """
         Log into Musicmanager and get the library, either by loading an
           existing library file, or by generating a new one.
         """
+        FreeClient.mm.login()
         self.songs = []
         self.load_library()
         if not self.songs:
-            mm = Musicmanager()
-            mm.login()
-            self.gen_library(mm)
+            self.gen_library()
 
     def load_library(self):
         path = join(common.DATA_DIR, 'library.zip')
@@ -322,17 +326,17 @@ class FreeClient(Client):
                 return
 
         l = len(self.songs)
-        common.w.outbar_msg('Loaded %s song%s.' % (l, '' if l == 1 else 's'))
+        common.w.outbar_msg('Loaded %s song%s.' % (l, '' if l is 1 else 's'))
 
     def gen_library(self, mm):
-        ids, = []  # Avoid duplicates between purchased and uploaded songs.
+        ids = []  # Avoid duplicates between purchased and uploaded songs.
         common.w.outbar_msg('Generating your library...')
 
-        for song in mm.get_uploaded_songs():
+        for song in FreeClient.mm.get_uploaded_songs():
             if song['id'] not in ids:
                 self.songs.append(music_objects.LibrarySong(song))
                 ids.append(song['id'])
-        for song in mm.get_purchased_songs():
+        for song in FreeClient.mm.get_purchased_songs():
             if song['id'] not in ids:
                 self.songs.append(music_objects.LibrarySong(song))
                 ids.append(song['id'])
@@ -343,8 +347,9 @@ class FreeClient(Client):
             z.writestr('library.json', json.dumps({'songs': self.songs}))
         l = len(self.songs)
         common.w.outbar_msg(
-            'Generated %d song%s.' % (l, '' if l == 1 else 's')
+            'Generated %d song%s.' % (l, '' if l is 1 else 's')
         )
+        common.w.now_playing()
 
     def expand(self, arg=None):
         """
@@ -363,7 +368,6 @@ class FreeClient(Client):
         Keyword arguments:
         query=None: The search query.
         """
-        query = query.lower()  # Search is case insensitive.
         if query is None:
             common.w.error_msg('Missing search query')
             return
@@ -373,12 +377,8 @@ class FreeClient(Client):
         else:
             limit = 50
         common.w.outbar_msg('Searching for \'%s\'...' % query)
-        if common.v is not None:
-            common.v.clear()
-        else:  # Should probably eliminate any behaviour that causes this.
-            common.v.replace({'songs': [], 'artist': [], 'albums': []})
-        count = 0
-        query = query.lower()
+        common.v.clear()
+        count, query = 0, query.lower()  # Search is case-insensitive.
         for song in self.songs:
             if any(query in song[k].lower()
                    for k in ('name', 'artist', 'album')):
@@ -407,7 +407,7 @@ class FullClient(Client):
         if num is None:  # No argument.
             common.w.error_msg('Missing argument to play')
             return
-        if common.v is None:  # Nothing to expand.
+        if common.v.is_empty():  # Nothing to expand.
             common.w.error_msg('Wrong context for expand.')
             return
 

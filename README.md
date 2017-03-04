@@ -9,10 +9,11 @@ Browse and stream Google Play Music from the comfort and familiarity of your fav
 
 Notes for free users:
 
-- A one-time OAuth sign-in is required, run `script/oauth_login.py` to authorize.
+- A one-time OAuth sign-in is required, run `script/oauth_login.py` and follow the prompts to authorize.
 - Free users only get access to their uploaded or puchased songs, and they must be downloaded rather than streamed.
 - If you don't want to wait for songs to download, you can download them all in one go with `script/download_all.py`. Songs are kept in `~/.local/share/pmcli/songs`.
-- I don't have enough music uploaded to my free account to properly test it, so expect bugs and crashes, and please open issues about them.
+- The `e/expand` command does not work for free users because artists and albums cannot be generated, leaving it useless.
+- I don't have enough music uploaded to my free account to properly test it, so expect bugs and crashes for now, and please open issues about them.
 
 ## Dependencies
 
@@ -23,7 +24,7 @@ Notes for free users:
 
 ## Installing, updating and uninstalling
 
-Use the `.sh` scripts in `script` to install, update or remove the program.
+Use the `.sh` scripts in `script` to install, update or remove the program. Note that they require root access; it's good practice to read the script so that you know what it does before running it.
 
 ## Running pmcli
 
@@ -72,7 +73,7 @@ You can choose to leave the password field empty as it is in `config.example`, a
 **If you store your password in plain text, be aware the potential consequences.**
 
 ## 2-Factor Authentication
-
+p
 If your account has 2FA set up, you will need to use an [app password](https://support.google.com/accounts/answer/185833?hl=en) to log in. If you're storing your password in your config file, replace it with the app password.
 
 ## Crashes

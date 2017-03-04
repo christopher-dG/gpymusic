@@ -1,3 +1,4 @@
+import client
 import common
 
 from mutagen.mp3 import MP3
@@ -41,9 +42,10 @@ class MusicObject(dict):
         if not isfile(conf_path):
             common.w.goodbye('No mpv_input.conf found.')
 
-        common.v.replace({'songs': songs})
+        common.v.replace({'songs': songs[:]})  # Need to make a deep copy.
         common.w.display()
         i = 1
+
         for song in songs:
             url = common.mc.get_stream_url(song['id'])
             common.w.now_playing(
@@ -55,6 +57,7 @@ class MusicObject(dict):
                     ['mpv', '--really-quiet', '--input-conf', conf_path, url]
             ) == 11:  # 'q' returns this exit code.
                 return i
+
             i += 1
             common.v['songs'].pop(0)
             common.w.display()  # Remove songs from sight after they're played.
@@ -328,7 +331,9 @@ class Song(MusicObject):
 
         Returns: The song title, artist name, and album name.
         """
-        return ' - '.join((self['name'], self['artist']['name']))
+        return ' - '.join(
+            (self['name'], self['artist']['name'], self['album']['name'])
+        )
 
     def play(self):
         """Play a song."""
@@ -415,10 +420,12 @@ class LibrarySong(MusicObject):
 
         Returns: mpv's exit code (0 for next, 11 for stop).
         """
-        song_path = join(common.DATA_DIR, 'songs', '%s.mp3' % str(self))
+        file_path = join(
+            common.DATA_DIR, 'songs', '%s.mp3' % str(self).replace('/', '---')
+        )
         conf_path = join(common.CONFIG_DIR, 'mpv_input.conf')
         return call(['mpv', '--really-quiet', '--no-video',
-                     '--input-conf', conf_path, song_path])
+                     '--input-conf', conf_path, file_path])
 
     def fill(self, func, limit=0):
         """
@@ -430,32 +437,33 @@ class LibrarySong(MusicObject):
         Keyword arguments:
         limit=0: Irrelevant.
         """
-        path = join(common.DATA_DIR, 'songs', '%s.mp3' % str(self))
+        # Can't have '/' in filenames so replace with them with something
+        # that will (hopefully) never occur naturally.
+        dl_path = join(
+            common.DATA_DIR, 'songs', '%s.mp3' % str(self).replace('/', '---')
+        )
         dl = False
-        if not isfile(path):
+        if not isfile(dl_path):
             common.w.outbar_msg('Downloading %s...' % str(self))
-            with open(join(common.DATA_DIR, 'songs', '%s.mp3'
-                           % str(self)), 'wb') as f:
-                f.write(common.l.mm.download_song(self['id'])[1])
+            with open(dl_path, 'wb') as f:
+                f.write(client.FreeClient.mm.download_song(self['id'])[1])
             self['full'] = True
             dl = True
         try:
-            self['time'] = LibrarySong.time_from_s(MP3(path).info.length)
+            self['time'] = LibrarySong.time_from_s(MP3(dl_path).info.length)
         except:  # Todo: look into more specific mutagen errors.
-            remove(path)
+            remove(dl_path)
             if not dl:  # File might be corrupt, so re-download it.
-                self.fill()
+                self.fill(None)
             else:  # Otherwise we're out of luck.
                 common.w.outbar_msg('Song could not be downloaded.')
 
 
-"""
-Music object mapping:
-cls: Class name of each type.
-hits: Key in mc.search() results.
-rslt_key: Key in an individual entry from mc.search()
-lookup: method to retrieve object information
-"""
+# Music object mapping:
+# cls: Class name of each type.
+# hits: Key in mc.search() results.
+# rslt_key: Key in an individual entry from mc.search()
+# lookup: method to retrieve object information
 mapping = {
     'songs': {
         'cls': Song,
