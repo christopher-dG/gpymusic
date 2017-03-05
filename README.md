@@ -73,7 +73,7 @@ You can choose to leave the password field empty as it is in `config.example`, a
 **If you store your password in plain text, be aware the potential consequences.**
 
 ## 2-Factor Authentication
-p
+
 If your account has 2FA set up, you will need to use an [app password](https://support.google.com/accounts/answer/185833?hl=en) to log in. If you're storing your password in your config file, replace it with the app password.
 
 ## Crashes
