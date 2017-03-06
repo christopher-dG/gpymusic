@@ -13,12 +13,12 @@ if __name__ == '__main__':
     if colour:
         start.set_colours(config['colour'])
         common.w.colour = True
-        common.w.welcome()
-        start.login(config['user'])
-        common.w.addstr(
-            common.w.infobar,
-            'Enter \'h\' or \'help\' if you need help.'
-        )
+    common.w.welcome()
+    start.login(config['user'])
+    common.w.addstr(
+        common.w.infobar,
+        'Enter \'h\' or \'help\' if you need help.'
+    )
 
     client = client.FullClient() if (
         common.mc.is_subscribed
