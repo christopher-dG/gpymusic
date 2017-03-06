@@ -22,10 +22,13 @@ for song in mm.get_uploaded_songs():
 
 print('Downloading %d songs to ~/.local/share/pmcli/songs. '
       'This might take a while...' % len(songs))
+
+song_dir = join(expanduser('~'), '.local', 'share', 'pmcli', 'songs')
 i = 1
+
 for id in songs:
     print('%d/%d: %s' % (i, len(songs), songs[id]))
-    with open(join(expanduser('~'), '.local', 'share', 'pmcli',
-                   'songs', '%s.mp3') % songs[id], 'wb') as f:
+    dl_path = join(song_dir, '%s.mp3' % songs[id].replace('/', '---'))
+    with open(dl_path, 'wb') as f:
         f.write(mm.download_song(id)[1])
     i += 1
