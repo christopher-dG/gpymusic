@@ -1,7 +1,7 @@
 import curses as crs
-import consts
+import common
 from getpass import getpass
-from os.path import basename, expanduser, isfile, join
+from os.path import basename, isfile, join
 from time import sleep
 import json
 import sys
@@ -34,33 +34,36 @@ def validate_config(config):
                 all([ord(ch) in c for ch in hex[1:]]))
 
     user_fields = ['email', 'password', 'deviceid']
-    colour_fields = ['background', 'foreground',
-                     'highlight', 'content1', 'content2']
+    colour_fields = [
+        'background', 'foreground', 'highlight', 'content1', 'content2'
+    ]
 
     # Check if there is any user info.
     if 'user' not in config:
-        consts.w.goodbye('No user info in config file: Exiting.')
+        common.w.goodbye('No user info in config file: Exiting.')
 
     # Check if there is enough user info.
     if not all([k in config['user'] for k in user_fields]):
-        consts.w.goodbye('Missing user info in config file: Exiting.')
+        common.w.goodbye('Missing user info in config file: Exiting.')
 
     # Check if there is any colour info.
     if 'colour' in config and 'enable' not in config['colour']:
-        consts.w.goodbye('Missing colour enable flag in config file: Exiting.')
+        common.w.goodbye('Missing colour enable flag in config file: Exiting.')
     else:
         colour = config['colour']['enable'] == 'yes'
 
     # Check if the colours are valid.
     if colour and not all([c in config['colour'] for c in colour_fields]):
-        consts.w.outbar_msg(
+        common.w.outbar_msg(
             'One or more colours are missing: Not using colour.')
         colour = False
         sleep(1.5)
-    elif colour and not all([validate_colour(config['colour'][c])
-                             for c in colour_fields]):
-        consts.w.outbar_msg(
-            'One or more colours are invalid: Not using colour.')
+    elif colour and not all(
+            [validate_colour(config['colour'][c]) for c in colour_fields]
+    ):
+        common.w.outbar_msg(
+            'One or more colours are invalid: Not using colour.'
+        )
         colour = False
         sleep(1.5)
 
@@ -79,19 +82,20 @@ def password(config):
       the entered password.
     """
     if not config['user']['password']:
-        if not consts.w.curses:
+        if not common.w.curses:
             try:
                 config['user']['password'] = getpass()
             except KeyboardInterrupt:
-                consts.w.goodbye('Exiting.')
+                common.w.goodbye('Exiting.')
         else:
             crs.noecho()  # Don't show the password as it's entered.
-            consts.w.addstr(consts.w.inbar, 'Enter your password: ')
+            common.w.addstr(common.w.inbar, 'Enter your password: ')
             try:
-                config['user'][
-                    'password'] = consts.w.inbar.getstr().decode('utf-8')
+                config['user']['password'] = (
+                    common.w.inbar.getstr().decode('utf-8')
+                )
             except KeyboardInterrupt:
-                consts.w.gooodbye('Exiting.')
+                common.w.gooodbye('Exiting.')
             crs.echo()
 
     return config
@@ -106,19 +110,20 @@ def read_config():
 
     Returns: A dict containing keys 'user' and 'colour''.
     """
-
-    path = join(expanduser('~'), '.config', 'pmcli', 'config.json')
-
+    path = join(common.CONFIG_DIR, 'config.json')
     if not isfile(path):
-        consts.w.goodbye('Config file not found at %s: Exiting.' %
-                         basename(path))
+        common.w.goodbye(
+            'Config file not found at %s: Exiting.' % basename(path)
+        )
 
     with open(path) as f:
         try:
             config = json.load(f)
         except json.decoder.JSONDecodeError:
-            consts.w.goodbye('Invalid config file, please refer to '
-                             'config.example: Exiting.')
+            common.w.goodbye(
+                'Invalid config file, please refer to '
+                'config.example: Exiting.'
+            )
 
     return password(config)
 
@@ -129,7 +134,7 @@ def get_windows():
 
     Returns: Curses windows.
     """
-    main = crs.initscr()  # Forthe bulk of output.
+    main = crs.initscr()  # For the bulk of output.
     main.resize(crs.LINES - 3, crs.COLS)
     inbar = crs.newwin(1, crs.COLS, crs.LINES - 1, 0)  # For user input.
     infobar = crs.newwin(1, crs.COLS, crs.LINES - 2, 0)  # For 'now playing'.
@@ -162,7 +167,6 @@ def set_colours(colours):
     Arguments:
     colours: Dict with colour information.
     """
-    global w
     crs.start_color()
     # Define colours.
     crs.init_color(0, *hex_to_rgb(colours['background']))
@@ -179,12 +183,12 @@ def set_colours(colours):
 
     # Set colours.
     crs.start_color()
-    consts.w.main.bkgdset(' ', crs.color_pair(1))
-    consts.w.inbar.bkgdset(' ', crs.color_pair(1))
-    consts.w.infobar.bkgdset(' ', crs.color_pair(2))
-    consts.w.outbar.bkgdset(' ', crs.color_pair(4))
+    common.w.main.bkgdset(' ', crs.color_pair(1))
+    common.w.inbar.bkgdset(' ', crs.color_pair(1))
+    common.w.infobar.bkgdset(' ', crs.color_pair(2))
+    common.w.outbar.bkgdset(' ', crs.color_pair(4))
 
-    consts.w.refresh()
+    common.w.refresh()
 
 
 def easy_login():
@@ -193,12 +197,12 @@ def easy_login():
     validate_config(config)
     user = config['user']
 
-    if not consts.mc.login(user['email'], user['password'], user['deviceid']):
+    if not common.mc.login(user['email'], user['password'], user['deviceid']):
         print('Login failed: exiting.')
         sys.exit()
     else:
         print('Logged in as %s (%s).' %
-              (user['email'], 'Full' if consts.mc.is_subscribed else 'Free'))
+              (user['email'], 'Full' if common.mc.is_subscribed else 'Free'))
 
 
 def login(user):
@@ -209,8 +213,10 @@ def login(user):
     user: Dict containing auth information.
     """
     crs.curs_set(0)
-    consts.w.outbar_msg('Logging in...')
-    if not consts.mc.login(user['email'], user['password'], user['deviceid']):
-        consts.w.goodbye('Login failed: Exiting.')
-    consts.w.outbar_msg('Logging in... Logged in as %s (%s).' % (
-        user['email'], 'Full' if consts.mc.is_subscribed else 'Free'))
+    common.w.outbar_msg('Logging in...')
+    if not common.mc.login(user['email'], user['password'], user['deviceid']):
+        common.w.goodbye('Login failed: Exiting.')
+    common.w.outbar_msg(
+        'Logging in... Logged in as %s (%s).' %
+        (user['email'], 'Full' if common.mc.is_subscribed else 'Free')
+    )

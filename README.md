@@ -5,29 +5,30 @@ Browse and stream Google Play Music from the comfort and familiarity of your fav
 ![screencast](https://fat.gfycat.com/MixedCoordinatedAmphibian.gif "Yes, I'm aware that this is technically a TUI")
 
 ## Notice
-**pmcli for free users is now in [develop](https://github.com/christopher-dg/pmcli/tree/develop)!**
+**pmcli now works for users with free accounts!**
 
-Notes for free users:
+Notes for free account users:
 
-- A one-time OAuth sign-in is required, run `script/oauth_login.py` to authorize.
-- Free users only get access to their uploaded or puchased songs, and they must be downloaded rather than streamed.
-- If you don't want to wait for songs to download, you can download them all in one go with `script/download_all.py`. Songs are kept in `~/.local/share/pmcli/songs`.
-- I don't have enough music uploaded to my free account to properly test it, so expect bugs and crashes, and please open issues about them.
+- A one-time OAuth sign-in is required, run `script/oauth_login.py` and follow the prompts to authorize.
+- Free users only get access to their uploaded or puchased songs, and they must be downloaded rather than streamed. This is an API/GPM limitation, sorry!
+- If you don't want to wait for songs to download, you can download them all in one go with `script/download_all.py`. Songs are stored in `~/.local/share/pmcli/songs`.
+- The `e/expand` command does not work for free users because artists and albums cannot be generated, so there is nothing for it to do.
+- I don't have enough music uploaded to my free account to properly test it, so expect some bugs and crashes for now, and please [open issues](https://github.com/christopher-dG/pmcli/issues/new) about them.
 
 ## Dependencies
 
 - [Python 3](https://python.org/downloads)
 - [mpv](https://mpv.io)
 - [gmusicapi](https://github.com/simon-weber/gmusicapi): `pip install gmusicapi` 
-  - Note: If you have both Python 2 and Python 3 installed, specify Python 3 by using: `pip3 install gmusicapi`.
+  - Note: If you have both Python 2 and Python 3 installed, specify Python 3 with `pip3 install gmusicapi`.
 
 ## Installing, updating and uninstalling
 
-Use the `.sh` scripts in `script` to install, update or remove the program.
+Use the `.sh` scripts in `script` to install, update or remove the program. Note that they require root access. While I assure you they're safe, it's good practice to read the script so that you know what it does before running it.
 
 ## Running pmcli
 
-Once installed, the program can be run with `pmcli`.
+Once installed, the program can be run from the terminal with `pmcli`.
 
 Note: Please, for your own sake, don't resize your terminal while the program is running.
 
@@ -50,7 +51,7 @@ Note: Please, for your own sake, don't resize your terminal while the program is
 When playing music:
 
 - `spc`: Play/pause
-- `9/0`: Volume down/up (Note: volume changes do not persist across songs, so I recommend you adjust your system volume instead)
+- `9/0`: Volume down/up (Note: volume changes are not persistent across songs, so I recommend you adjust your system volume instead)
 - `n`: Next track
 - `q`: Stop
 - `↑/↓/←/→`: Seek
@@ -77,7 +78,7 @@ If your account has 2FA set up, you will need to use an [app password](https://s
 
 ## Crashes
 
-If `pmcli` crashes, your terminal settings will likely be messed up, in which case `stty sane` will restore order. Don't forget to file an issue!
+If `pmcli` crashes, your terminal settings will likely be messed up, in which case `stty sane` will restore order. Don't forget to [open an issue](https://github.com/christopher-dG/pmcli/issues/new)!
 
 ### Disclaimer
 Expect bugs, and please report them! I hope you enjoy using pmcli, and if you don't, that's okay too because I enjoy working on it.

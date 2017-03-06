@@ -1,6 +1,6 @@
 import curses as crs
 from time import sleep
-import consts
+import common
 import sys
 
 
@@ -16,9 +16,9 @@ class Writer():
         main/inbar/infobar/outbar: curses windows.
 
         Keyword arguments:
-        curses = True: Flag for disabling curses output.
-        colour = False: Flag for disabling colour output.
-        test = False: Flag to disable all output for unit testing.
+        curses=True: Flag for disabling curses output.
+        colour=False: Flag for disabling colour output.
+        test=False: Flag to disable all output for unit testing.
           If test is True, then curses must be disabled.
         """
         if test and curses:
@@ -33,6 +33,8 @@ class Writer():
         self.curses = curses
         self.colour = colour
         self.test = test
+        self.xlimit = self.main.getmaxyx()[1] if main is not None else 0
+        self.ylimit = self.main.getmaxyx()[0] if main is not None else 0
 
     @staticmethod
     def trunc(string, ch):
@@ -52,6 +54,14 @@ class Writer():
         else:
             return string[:-((len(string) - ch) + 3)] + '...'
 
+    def replace_windows(self, main, inbar, infobar, outbar):
+        self.main = main
+        self.inbar = inbar
+        self.infobar = infobar
+        self.outbar = outbar
+        self.ylimit = self.main.getmaxyx()[0]
+        self.xlimit = self.main.getmaxyx()[1]
+
     def addstr(self, win, string):
         """
         Replace the contents of a window with a new string.
@@ -67,7 +77,7 @@ class Writer():
             return
 
         win.erase()
-        win.addstr(Writer.trunc(string, win.getmaxyx()[1] - 1))
+        win.addstr(Writer.trunc(string, self.xlimit - 1))
         win.refresh()
 
     def refresh(self):
@@ -86,8 +96,7 @@ class Writer():
           nothing is playing.
 
         Keyword arguments:
-        string = None: Formatted song string.
-        time = None: Length of the song playing.
+        string=None: Formatted song string.
         """
         if self.test:
             return
@@ -123,8 +132,11 @@ class Writer():
                 print('Welcome to pmcli!')
             return
 
-        self.main.addstr(5, int(crs.COLS / 2) - 9, 'Welcome to pmcli!')
-        self.main.refresh()
+        try:
+            self.main.addstr(5, int(crs.COLS / 2) - 9, 'Welcome to pmcli!')
+            self.main.refresh()
+        except:  # If this errors for some reason, just don't display anything.
+            pass
 
     def goodbye(self, msg):
         """
@@ -139,6 +151,7 @@ class Writer():
             sys.exit()
 
         self.addstr(self.outbar, msg)
+        common.mc.logout()
         sleep(2)
         crs.curs_set(1)
         crs.endwin()
@@ -177,60 +190,64 @@ class Writer():
             return
         self.addstr(self.outbar, msg)
 
+    def measure_fields(self, width):
+        """
+        Determine max number of  characters and starting point
+          for category fields.
+
+        Arguments:
+        width: Width of the window being divided.
+
+        Returns: A tuple containing character allocations
+          and start positions.
+        """
+        padding = 1  # Space between fields.
+        i_ch = 3  # Characters to allocate for index.
+        # Width of each name, artist, and album fields.
+        n_ch = ar_ch = al_ch = int((width - i_ch - 3 * padding) / 3)
+        al_ch -= 1  # Hacky guard against overflow.
+
+        total = sum([i_ch, n_ch, ar_ch, al_ch, 3 * padding])
+
+        if total != width:  # Allocate any leftover space to name.
+            n_ch += width - total
+
+        # Field starting x positions.
+        n_start = 0 + i_ch + padding
+        ar_start = n_start + n_ch + padding
+        al_start = ar_start + ar_ch + padding
+
+        return (i_ch, n_ch, ar_ch, al_ch,
+                n_start, ar_start, al_start)
+
     def display(self):
         """Update the main window with some content."""
-        c = consts.v
+        c = common.v
         if not self.curses:
             if not self.test:
+                i = 1
                 if 'songs' in c and c['songs']:
                     print('Songs:')
                 for song in c['songs']:
-                    print(str(song))
+                    print('%d: %s' % (i, str(song)))
+                    i += 1
                 if 'artists' in c and c['artists']:
                     print('Artists:')
                 for artist in c['artists']:
-                    print(str(artist))
+                    print('%d: %s' % (i, str(artist)))
+                    i += 1
                 if 'albums' in c and c['albums']:
                     print('Albums:')
                 for album in c['albums']:
-                    print(str(album))
+                    print('%d: %s' % (i, str(album)))
+                    i += 1
             return
-
-        def measure_fields(width):
-            """
-            Determine max number of  characters and starting point
-              for category fields.
-
-            Arguments:
-            width: Width of the window being divided.
-
-            Returns: A tuple containing character allocations
-              and start positions.
-            """
-            padding = 1  # Space between fields.
-            i_ch = 3  # Characters to allocate for index.
-            # Width of each name, artist, and album fields.
-            n_ch = ar_ch = al_ch = int((width - i_ch - 3 * padding) / 3)
-            al_ch -= 1  # Hacky guard against overflow.
-
-            total = sum([i_ch, n_ch, ar_ch, al_ch, 3 * padding])
-
-            if total != width:  # Allocate any leftover space to name.
-                n_ch += width - total
-
-            # Field starting x positions.
-            n_start = 0 + i_ch + padding
-            ar_start = n_start + n_ch + padding
-            al_start = ar_start + ar_ch + padding
-
-            return (i_ch, n_ch, ar_ch, al_ch,
-                    n_start, ar_start, al_start)
 
         cl = self.colour
         self.main.erase()
         y, i = 0, 1  # y coordinate in main window, current item index.
         (i_ch, n_ch, ar_ch, al_ch, n_start,
-         ar_start, al_start) = measure_fields(consts.w.main.getmaxyx()[1])
+         ar_start, al_start) = self.measure_fields(self.xlimit)
 
         # Songs header.
         if 'songs' in c and c['songs']:
@@ -256,12 +273,20 @@ class Writer():
                 self.main.addstr(
                     y, n_start, Writer.trunc(song['name'], n_ch),
                     crs.color_pair(3 if y % 2 == 0 else 4) if cl else 0)
-                self.main.addstr(
-                    y, ar_start, Writer.trunc(song['artist']['name'], ar_ch),
-                    crs.color_pair(3 if y % 2 == 0 else 4) if cl else 0)
-                self.main.addstr(
-                    y, al_start, Writer.trunc(song['album']['name'], al_ch),
-                    crs.color_pair(3 if y % 2 == 0 else 4) if cl else 0)
+                if song['kind'] == 'song':
+                    self.main.addstr(
+                        y, ar_start, Writer.trunc(song['artist']['name'], ar_ch),  # noqa
+                        crs.color_pair(3 if y % 2 == 0 else 4) if cl else 0)
+                    self.main.addstr(
+                        y, al_start, Writer.trunc(song['album']['name'], al_ch),  # noqa
+                        crs.color_pair(3 if y % 2 == 0 else 4) if cl else 0)
+                else:
+                    self.main.addstr(
+                        y, ar_start, Writer.trunc(song['artist'], ar_ch),
+                        crs.color_pair(3 if y % 2 == 0 else 4) if cl else 0)
+                    self.main.addstr(
+                        y, al_start, Writer.trunc(song['album'], al_ch),
+                        crs.color_pair(3 if y % 2 == 0 else 4) if cl else 0)
 
                 y += 1
                 i += 1
@@ -271,7 +296,7 @@ class Writer():
             self.main.addstr(
                 y, 0, '#', crs.color_pair(2) if cl else crs.A_UNDERLINE)
             self.main.addstr(
-                y, n_start, Writer.trunc('Artist', n_ch),
+                y, ar_start, Writer.trunc('Artist', n_ch),
                 crs.color_pair(2) if cl else crs.A_UNDERLINE)
 
             y += 1

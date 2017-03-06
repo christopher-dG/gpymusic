@@ -8,16 +8,17 @@ filterwarnings('ignore')
 
 # Try to print out some valid device IDs.
 if __name__ == '__main__':
-    api = Mobileclient()
+    mc = Mobileclient()
     email = input('Enter your email: ').strip()
     assert '@' in email, 'Invalid email.'
     password = getpass('Enter password for %s: ' % email)
 
-    if not api.login(email, password, Mobileclient.FROM_MAC_ADDRESS):
+    if not mc.login(email, password, mc.FROM_MAC_ADDRESS):
         print('Login failed, verify your email and password.')
-    else:
-        devices = api.get_registered_devices()
-        for i, device in enumerate(
-                [d for d in devices if d['kind'] in (u'ANDROID', u'IOS')]):
-            id = device['id']
-            print('%d: %s' % (i + 1, id[2:]if id.startswith('0x') else id))
+        quit()
+
+    for i, id in enumerate([
+            d['id'][2:] if d['id'].startswith('0x') else d['id'].replace(':', '')  # noqa
+            for d in mc.get_registered_devices()
+    ]):
+        print('%d: %s' % (i + 1, id))
