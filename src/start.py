@@ -1,7 +1,7 @@
 import curses as crs
 import common
 from getpass import getpass
-from os.path import basename, isfile, join
+from os.path import basename, exists, isfile, join
 from time import sleep
 import json
 import sys
@@ -68,6 +68,18 @@ def validate_config(config):
         sleep(1.5)
 
     return colour
+
+
+def check_dirs():
+    """Make sure that config and data directories exist."""
+    msg = 'At least one required directory does not exist: '
+    msg += 'did you install pmcli correctly?'
+    if not exists(common.CONFIG_DIR) or not exists(common.DATA_DIR):
+        common.w.goodbye(msg)
+    if not exists(join(common.DATA_DIR, 'playlists')):
+        common.w.goodbye(msg)
+    if not exists(join(common.DATA_DIR, 'songs')):
+        common.w.goodbye(msg)
 
 
 def password(config):

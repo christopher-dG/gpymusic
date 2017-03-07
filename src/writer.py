@@ -147,7 +147,7 @@ class Writer():
         """
         if not self.curses:
             if not self.test:
-                print('Goodbye.')
+                print(msg)
             sys.exit()
 
         self.addstr(self.outbar, msg)
