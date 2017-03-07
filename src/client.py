@@ -313,7 +313,7 @@ class FreeClient(Client):
             with zipfile.ZipFile(path) as z:
                 try:
                     lib = json.loads(z.read('library.json').decode('utf-8'))
-                except json.JSONDecodeError:  # The .json file is invalid
+                except json.JSONDecodeError:  # The .json file is invalid.
                     common.w.addstr(
                         common.w.infobar, 'Library file is corrupt.'
                     )

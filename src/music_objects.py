@@ -47,7 +47,13 @@ class MusicObject(dict):
         i = 1
 
         for song in songs:
-            url = common.mc.get_stream_url(song['id'])
+            try:
+                url = common.mc.get_stream_url(song['id'])
+            except:  # Not sure exactly what exception is raised.
+                common.w.goodbye(
+                    'Access denied: Is your device ID set correctly?'
+                )
+
             common.w.now_playing(
                 '(%d/%d) %s (%s)' %
                 (i, len(songs), str(song), song['time'])
