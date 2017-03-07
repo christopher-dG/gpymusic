@@ -6,6 +6,7 @@ import start
 
 
 if __name__ == '__main__':
+    start.check_dirs()
     common.w.replace_windows(*start.get_windows())
     common.w.curses = True
     config = start.read_config()
