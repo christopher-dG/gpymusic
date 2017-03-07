@@ -60,28 +60,28 @@ class Client:
         Keyword arguments:
         arg=0: Irrelevant.
         """
-        common.v = None
+        common.v.clear()
         if not common.w.curses:
             return
 
         common.w.main.erase()
         common.w.main.addstr(
-            """
-            Commands:
-            s/search searchterm: Search for searchterm
-            e/expand 123: Expand item number 123
-            p/play: Play current queue
-            p/play s: Shuffle and play current queue
-            p/play 123: Play item number 123
-            q/queue: Show current queue
-            q/queue 123: Add item number 123 to queue
-            q/queue 1 2 3: Add items 1, 2, 3 to queue
-            q/queue c: Clear the current queuen
-            w/write filename: Write current queue to filename
-            r/restore filename: Replace current queue with playlist from filename
-            h/help: Show this help message
-            Ctrl-C: Exit pmcli
-            """  # noqa
+        """
+        Commands:
+        s/search searchterm: Search for searchterm
+        e/expand 123: Expand item number 123
+        p/play: Play current queue
+        p/play s: Shuffle and play current queue
+        p/play 123: Play item number 123
+        q/queue: Show current queue
+        q/queue 123: Add item number 123 to queue
+        q/queue 1 2 3: Add items 1, 2, 3 to queue
+        q/queue c: Clear the current queuen
+        w/write filename: Write current queue to filename
+        r/restore filename: Replace current queue with playlist from filename
+        h/help: Show this help message
+        Ctrl-C: Exit pmcli
+        """  # noqa
         )
         common.w.main.refresh()
 
@@ -151,15 +151,17 @@ class Client:
                     limit = common.w.ylimit - 2
                 else:
                     limit = -1
-                if common.q:
-                    common.v.replace(common.q.collect(limit))
-                else:
-                    common.w.error_msg('Wrong context for queue')
+                common.v.replace(common.q.collect(limit))
+
             return
 
         if arg in ('c', 'C'):  # Clear the queue.
             del common.q[:]
             common.w.outbar_msg('Cleared queue.')
+            return
+
+        if common.v.is_empty():
+            common.w.error_msg('Wrong context for queue')
             return
 
         try:
@@ -377,6 +379,9 @@ class FreeClient(Client):
             common.w.error_msg('Missing search query')
             return
 
+        # Save the current view in case there are no results.
+        cache = common.v.copy()
+
         if common.w.curses:
             limit = common.w.main.getmaxyx()[0] - 4
         else:
@@ -392,6 +397,9 @@ class FreeClient(Client):
                 if count == limit:
                     break
         common.w.outbar_msg('Search returned %d results.' % len(common.v))
+
+        if common.v.is_empty():
+            common.v.replace(cache)
 
 
 class FullClient(Client):
@@ -442,6 +450,9 @@ class FullClient(Client):
             common.w.error_msg('Missing search query')
             return
 
+        # Save the current view in case there are no results.
+        cache = common.v.copy()
+
         # Fetch as many results as we can display depending on terminal height.
         if common.w.curses:
             limit = int((common.w.ylimit - 3) / 3)
@@ -455,10 +466,7 @@ class FullClient(Client):
         # 'class' => class of MusicObject
         # 'hits' => key in search result
         # 'rslt_key' => per-entry key in search result
-        if common.v is not None:
-            common.v.clear()
-        else:
-            common.v.replace({'songs': [], 'artist': [], 'albums': []})
+        common.v.clear()
         iters = {k: iter(result[music_objects.mapping[k]['hits']])
                  for k in common.v.keys()}
         # Create at most 'limit' of each type.
@@ -470,3 +478,6 @@ class FullClient(Client):
                 except StopIteration:
                     pass
         common.w.outbar_msg('Search returned %d results.' % len(common.v))
+
+        if common.v.is_empty():
+            common.v.replace(cache)

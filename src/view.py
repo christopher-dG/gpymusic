@@ -40,3 +40,7 @@ class View(dict):
     def is_empty(self):
         """Returns whether or not the view is empty."""
         return all(not self[k] for k in self)
+
+    def copy(self):
+        """Return a deep copy of the view's contents."""
+        return {k: self[k][:] for k in self}

@@ -222,6 +222,8 @@ class Writer():
 
     def display(self):
         """Update the main window with some content."""
+        if common.v.is_empty():
+            return
         c = common.v
         if not self.curses:
             if not self.test:
