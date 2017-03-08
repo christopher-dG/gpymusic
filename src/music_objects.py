@@ -1,4 +1,3 @@
-import client
 import common
 
 from mutagen.mp3 import MP3
@@ -28,12 +27,15 @@ class MusicObject(dict):
         self['full'] = full
 
     @staticmethod
-    def play(songs):
+    def play(songs, breakpoint=-1):
         """
         Play some songs.
 
         Arguments:
         songs: List of songs to play.
+
+        Keyword arguments:
+        breakpoint=-1: Max number of songs to play during testing.
 
         Returns: None if all songs were played, or the index of the
           first unplayed song to be used in restoring the queue.
@@ -398,14 +400,6 @@ class LibrarySong(MusicObject):
         # call, so we'll leave that until we want to play it.
         self['time'] = ''
 
-    def __str__(self):
-        """
-        Format a library song into a string.
-
-        Returns: The song title, artist name, and album name.
-        """
-        return ' - '.join((self['name'], self['artist'], self['album']))
-
     @staticmethod
     def time_from_s(s):
         """
@@ -419,6 +413,14 @@ class LibrarySong(MusicObject):
         mins = str(int(s // 60)).zfill(2)
         secs = str(int(s % 60)).zfill(2)
         return '%s:%s' % (mins, secs)
+
+    def __str__(self):
+        """
+        Format a library song into a string.
+
+        Returns: The song title, artist name, and album name.
+        """
+        return ' - '.join((self['name'], self['artist'], self['album']))
 
     def play(self):
         """
@@ -452,7 +454,7 @@ class LibrarySong(MusicObject):
         if not isfile(dl_path):
             common.w.outbar_msg('Downloading %s...' % str(self))
             with open(dl_path, 'wb') as f:
-                f.write(client.FreeClient.mm.download_song(self['id'])[1])
+                f.write(common.client.mm.download_song(self['id'])[1])
             self['full'] = True
             dl = True
         try:

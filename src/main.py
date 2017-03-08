@@ -21,12 +21,12 @@ if __name__ == '__main__':
         'Enter \'h\' or \'help\' if you need help.'
     )
 
-    client = client.FullClient() if (
+    common.client = client.FullClient() if (
         common.mc.is_subscribed
-    ) else client.FreeClient()
+    ) else common.client.FreeClient()
 
     while True:
-        client.transition()
+        common.client.transition()
 
 else:
     start.easy_login()

@@ -17,22 +17,6 @@ def validate_config(config):
 
     Returns: Whether or not the config file has colour support.
     """
-
-    def validate_colour(hex):
-        """
-        Verify that a string represents a valid hex colour.
-
-        Arguments:
-        hex: String to be checked.
-
-        Returns: Whether or not the string is a hex colour.
-        """
-        # ASCII values for letters and numbers.
-        c = tuple(range(48, 58)) + tuple(range(65, 91)) + tuple(range(97, 123))
-
-        return (hex.startswith('#') and len(hex) == 7 and
-                all([ord(ch) in c for ch in hex[1:]]))
-
     user_fields = ['email', 'password', 'deviceid']
     colour_fields = [
         'background', 'foreground', 'highlight', 'content1', 'content2'
@@ -68,6 +52,22 @@ def validate_config(config):
         sleep(1.5)
 
     return colour
+
+
+def validate_colour(hex):
+    """
+    Verify that a string represents a valid hex colour.
+
+    Arguments:
+    hex: String to be checked.
+
+    Returns: Whether or not the string is a hex colour.
+    """
+    # ASCII values for letters and numbers.
+    c = tuple(range(48, 58)) + tuple(range(65, 91)) + tuple(range(97, 123))
+
+    return (hex.startswith('#') and len(hex) == 7 and
+            all([ord(ch) in c for ch in hex[1:]]))
 
 
 def check_dirs():

@@ -152,6 +152,8 @@ class Writer():
 
         self.addstr(self.outbar, msg)
         common.mc.logout()
+        if common.client.kind == 'free':
+            common.client.mm.logout()
         sleep(2)
         crs.curs_set(1)
         crs.endwin()

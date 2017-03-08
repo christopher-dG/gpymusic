@@ -13,8 +13,13 @@ from gmusicapi import Musicmanager
 class Client:
     """Driver for most of pmcli's functionality."""
 
-    def transition(self):
-        """Route input to the appropriate function."""
+    def transition(self, input=""):
+        """
+        Route input to the appropriate function.
+
+        Keyword arguments:
+        input="": predefined user input. If not set, prompt for input.
+        """
         commands = {
             'h': self.help,
             'help': self.help,
@@ -41,7 +46,7 @@ class Client:
         else:
             common.w.now_playing()
 
-        user_input = common.w.get_input()
+        user_input = common.w.get_input() if not input else input
         try:
             command, arg = (s.strip() for s in user_input.split(maxsplit=1))
         except ValueError:  # No argument.
@@ -292,14 +297,14 @@ class FreeClient(Client):
       or uploaded, and they must be downloaded before they can be played.
       Artists and albums cannot be generated, so the expand method has no use.
     """
-    mm = Musicmanager()
-
     def __init__(self):
         """
         Log into Musicmanager and get the library, either by loading an
           existing library file, or by generating a new one.
         """
-        FreeClient.mm.login()
+        self.kind = 'free'
+        self.mm = Musicmanager()
+        self.mm.login()
         self.songs = []
         self.load_library()
         if not self.songs:
@@ -339,11 +344,11 @@ class FreeClient(Client):
         ids = []  # Avoid duplicates between purchased and uploaded songs.
         common.w.outbar_msg('Generating your library...')
 
-        for song in FreeClient.mm.get_uploaded_songs():
+        for song in self.mm.get_uploaded_songs():
             if song['id'] not in ids:
                 self.songs.append(music_objects.LibrarySong(song))
                 ids.append(song['id'])
-        for song in FreeClient.mm.get_purchased_songs():
+        for song in self.mm.get_purchased_songs():
             if song['id'] not in ids:
                 self.songs.append(music_objects.LibrarySong(song))
                 ids.append(song['id'])
@@ -403,9 +408,9 @@ class FreeClient(Client):
 
 
 class FullClient(Client):
-
+    """Client for paid account users with full functionality."""
     def __init__(self):
-        pass
+        self.kind = 'full'
 
     def expand(self, num=None):
         """
