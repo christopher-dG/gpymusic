@@ -4,17 +4,6 @@ Browse and stream Google Play Music from the comfort and familiarity of your fav
 
 ![screencast](https://fat.gfycat.com/MixedCoordinatedAmphibian.gif "Yes, I'm aware that this is technically a TUI")
 
-## Notice
-**pmcli now works for users with free accounts!**
-
-Notes for free account users:
-
-- A one-time OAuth sign-in is required, run `script/oauth_login.py` and follow the prompts to authorize.
-- Free users only get access to their uploaded or puchased songs, and they must be downloaded rather than streamed. This is an API/GPM limitation, sorry!
-- If you don't want to wait for songs to download, you can download them all in one go with `script/download_all.py`. Songs are stored in `~/.local/share/pmcli/songs`.
-- The `e/expand` command does not work for free users because artists and albums cannot be generated, so there is nothing for it to do.
-- I don't have enough music uploaded to my free account to properly test it, so expect some bugs and crashes for now, and please [open issues](https://github.com/christopher-dG/pmcli/issues/new) about them.
-
 ## Dependencies
 
 - [Python 3](https://python.org/downloads)
@@ -28,9 +17,18 @@ Use the `.sh` scripts in `script` to install, update or remove the program. Note
 
 ## Running pmcli
 
-Once installed, the program can be run from the terminal with `pmcli`.
+Once installed, the program can be run from the terminal with `pmcli`. While the program is running, don't resize your terminal.
 
-Note: Please, for your own sake, don't resize your terminal while the program is running.
+## Accounts 
+
+`pmcli` works similiarly to the web interface in that users with free accounts can only arbitrarily access music that they've purchased or uploaded, whereas users with free accounts can search for and stream anything. When playing music with a free account, the entire song is downloaded and played locally rather than streamed. 
+
+Notes for free users:
+
+- A one-time OAuth sign-in is required for free users, run `script/oauth_login.py` and follow the prompts to authorize.
+- If you don't want to wait for songs to download on the fly, you can download them all in one go with `script/download_all.py`. Songs are stored in `~/.local/share/pmcli/songs`.
+- The `e/expand` command does not work for free users because artists and albums cannot be generated, so there is nothing for it to do.
+- I don't have enough music uploaded to my free account to properly test it, so please [open issues](https://github.com/christopher-dG/pmcli/issues/new) about any crashes or other problems.
 
 ## Controls
 
