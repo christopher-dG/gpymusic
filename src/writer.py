@@ -134,7 +134,7 @@ class Writer():
 
         try:
             self.main.addstr(
-                5, int(crs.COLS / 2) - 9, 'Welcome to Google Py Music!'
+                5, int(crs.COLS / 2) - 13, 'Welcome to Google Py Music!'
             )
             self.main.refresh()
         except:  # If this errors for some reason, just don't display anything.
