@@ -73,7 +73,7 @@ def validate_colour(hex):
 def check_dirs():
     """Make sure that config and data directories exist."""
     msg = 'At least one required directory does not exist: '
-    msg += 'did you install pmcli correctly?'
+    msg += 'did you install gpymusic correctly?'
     if not exists(common.CONFIG_DIR) or not exists(common.DATA_DIR):
         common.w.goodbye(msg)
     if not exists(join(common.DATA_DIR, 'playlists')):
@@ -116,7 +116,7 @@ def password(config):
 def read_config():
     """
     Parses a config file for login information.
-      Config file should be located at '~/.config/pmcli/config'
+      Config file should be located at '~/.config/gpymusic/config'
       with a section called[auth] containing email, password,
       and deviceid.
 

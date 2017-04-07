@@ -129,18 +129,20 @@ class Writer():
         """Displays a welcome message."""
         if not self.curses:
             if not self.test:
-                print('Welcome to pmcli!')
+                print('Welcome to Google Py Music!')
             return
 
         try:
-            self.main.addstr(5, int(crs.COLS / 2) - 9, 'Welcome to pmcli!')
+            self.main.addstr(
+                5, int(crs.COLS / 2) - 9, 'Welcome to Google Py Music!'
+            )
             self.main.refresh()
         except:  # If this errors for some reason, just don't display anything.
             pass
 
     def goodbye(self, msg):
         """
-        Exit pmcli.
+        Exit gpymusic.
 
         Arguements:
         msg: Message to display prior to exiting.
@@ -152,8 +154,10 @@ class Writer():
 
         self.addstr(self.outbar, msg)
         common.mc.logout()
-        if common.client.kind == 'free':
+        try:
             common.client.mm.logout()
+        except:
+            pass
         sleep(2)
         crs.curs_set(1)
         crs.endwin()
@@ -174,7 +178,7 @@ class Writer():
         try:
             string = self.inbar.getstr()
         except KeyboardInterrupt:
-            self.goodbye('Goodbye, thanks for using pmcli!')
+            self.goodbye('Goodbye, thanks for using Google Py Music!')
 
         self.inbar.deleteln()
         crs.curs_set(0)  # Hide the cursor.

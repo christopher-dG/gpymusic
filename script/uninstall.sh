@@ -1,7 +1,8 @@
 #!/bin/bash
 set -e
 
-echo Uninstalling pmcli.
-rm -r ~/.local/share/pmcli ~/.config/pmcli
-sudo rm /usr/local/bin/pmcli
-echo Done.
+$USER -eq root && echo "Don't run this script as root." && exit 1
+echo "Uninstalling Google Py Music."
+rm -r ~/.local/share/gpymusic ~/.config/gpymusic
+sudo rm /usr/local/bin/gpymusic
+echo "Done."

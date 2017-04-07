@@ -11,7 +11,7 @@ from gmusicapi import Musicmanager
 
 
 class Client:
-    """Driver for most of pmcli's functionality."""
+    """Driver for most of gpymusic's functionality."""
 
     def transition(self, input=""):
         """
@@ -60,7 +60,7 @@ class Client:
 
     def help(self, arg=0):
         """
-        Display basic pmcli commands.
+        Display basic gpymusic commands.
 
         Keyword arguments:
         arg=0: Irrelevant.
@@ -85,7 +85,7 @@ class Client:
         w/write filename: Write current queue to filename
         r/restore filename: Replace current queue with playlist from filename
         h/help: Show this help message
-        Ctrl-C: Exit pmcli
+        Ctrl-C: Exit gpymusic
         """  # noqa
         )
         common.w.main.refresh()
@@ -96,7 +96,7 @@ class Client:
 
         Keyword arguments:
         fn=None: File to be written to.
-          File is stored at ~/.local/share/pmcli/playlists/.
+          File is stored at ~/.local/share/gpymusic/playlists/.
         """
         path = join(common.DATA_DIR, 'playlists')
         if not common.q:  # Can't save an empty queue.
@@ -119,7 +119,7 @@ class Client:
 
         Keyword arguments:
         fn=None: Name of the file containing the playlist.
-          File should be at ~/.local/share/pmcli/playlists/.
+          File should be at ~/.local/share/gpymusic/playlists/.
         """
         path = join(common.DATA_DIR, 'playlists')
         if fn is None:  # No filename specified.

@@ -20,10 +20,10 @@ for song in mm.get_uploaded_songs():
         [song['title'], song['artist'], song['album']]
     )
 
-print('Downloading %d songs to ~/.local/share/pmcli/songs. '
+print('Downloading %d songs to ~/.local/share/gpymusic/songs. '
       'This might take a while...' % len(songs))
 
-song_dir = join(expanduser('~'), '.local', 'share', 'pmcli', 'songs')
+song_dir = join(expanduser('~'), '.local', 'share', 'gpymusic', 'songs')
 i = 1
 
 for id in songs:

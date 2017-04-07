@@ -1,34 +1,36 @@
-# pmcli - (p)lay (m)usic for (cli)
+# Google Py Music
+
+## A standalone terminal client for Google Play Music
 
 Browse and stream Google Play Music from the comfort and familiarity of your favourite terminal.
 
-![screencast](https://fat.gfycat.com/MixedCoordinatedAmphibian.gif "Yes, I'm aware that this is technically a TUI")
+![screencast](https://fat.gfycat.com/MixedCoordinatedAmphibian.gif "Just pretend that this says Google Py Music instead of pmcli.")
 
 ## Dependencies
 
 - [Python 3](https://python.org/downloads)
 - [mpv](https://mpv.io)
-- [gmusicapi](https://github.com/simon-weber/gmusicapi): `pip install gmusicapi` 
+- [gmusicapi](https://github.com/simon-weber/gmusicapi): `pip install gmusicapi`
   - Note: If you have both Python 2 and Python 3 installed, specify Python 3 with `pip3 install gmusicapi`.
 
 ## Installing, updating and uninstalling
 
 Use the `.sh` scripts in `script` to install, update or remove the program. Note that they require root access. While I assure you they're safe, it's good practice to read the script so that you know what it does before running it.
 
-## Running pmcli
+## Running Google Py Music
 
-Once installed, the program can be run from the terminal with `pmcli`. While the program is running, don't resize your terminal.
+Once installed, the program can be run from the terminal with `gpymusic`. While the program is running, don't resize your terminal.
 
-## Accounts 
+## Accounts
 
-`pmcli` works similiarly to the web interface in that users with free accounts can only arbitrarily access music that they've purchased or uploaded, whereas users with free accounts can search for and stream anything. When playing music with a free account, the entire song is downloaded and played locally rather than streamed. 
+Google Py Music works similiarly to the web interface in that users with free accounts can only arbitrarily access music that they've purchased or uploaded, whereas users with free accounts can search for and stream anything. When playing music with a free account, the entire song is downloaded and played locally rather than streamed.
 
 Notes for free users:
 
 - A one-time OAuth sign-in is required for free users, run `script/oauth_login.py` and follow the prompts to authorize.
-- If you don't want to wait for songs to download on the fly, you can download them all in one go with `script/download_all.py`. Songs are stored in `~/.local/share/pmcli/songs`.
+- If you don't want to wait for songs to download on the fly, you can download them all in one go with `script/download_all.py`. Songs are stored in `~/.local/share/gpymusic/songs`.
 - The `e/expand` command does not work for free users because artists and albums cannot be generated, so there is nothing for it to do.
-- I don't have enough music uploaded to my free account to properly test it, so please [open issues](https://github.com/christopher-dG/pmcli/issues/new) about any crashes or other problems.
+- I don't have enough music uploaded to my free account to properly test it, so please [open issues](https://github.com/christopher-dG/gpymusic/issues/new) about any crashes or other problems.
 
 ## Controls
 
@@ -44,7 +46,7 @@ Notes for free users:
 - `w/write file-name`: Write current queue to file file-name
 - `r/restore file-name`: Replace current queue with playlist from file-name
 - `h/help`: Show help message
-- `Ctrl-C`: Exit pmcli
+- `Ctrl-C`: Exit Google Py Music
 
 When playing music:
 
@@ -76,7 +78,7 @@ If your account has 2FA set up, you will need to use an [app password](https://s
 
 ## Crashes
 
-If `pmcli` crashes, your terminal settings will likely be messed up, in which case `stty sane` will restore order. Don't forget to [open an issue](https://github.com/christopher-dG/pmcli/issues/new)!
+If `gpymusic` crashes, your terminal settings will likely be messed up, in which case `stty sane` will restore order. Don't forget to [open an issue](https://github.com/christopher-dG/gpymusic/issues/new)!
 
 ### Disclaimer
-Expect bugs, and please report them! I hope you enjoy using pmcli, and if you don't, that's okay too because I enjoy working on it.
+Expect bugs, and please report them! I hope you enjoy using Google Py Music, and if you don't, that's okay too because I enjoy working on it.

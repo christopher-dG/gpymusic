@@ -10,9 +10,9 @@ from os.path import expanduser, join
 
 
 # Location where we keep songs, playlists, libraries, and source code.
-DATA_DIR = join(expanduser('~'), '.local', 'share', 'pmcli')
+DATA_DIR = join(expanduser('~'), '.local', 'share', 'gpymusic')
 # Location where we keep user and mpv configurations.
-CONFIG_DIR = join(expanduser('~'), '.config', 'pmcli')
+CONFIG_DIR = join(expanduser('~'), '.config', 'gpymusic')
 
 q = songqueue.Queue()  # Queue/playlist.
 w = writer.Writer(None, None, None, None, curses=False)  # Output handler.

@@ -1,10 +1,11 @@
 #!/bin/bash
 set -e
 
-echo Updating pmcli.
-cd ..
+$USER -eq root && echo "Don't run this script as root." && exit 1
+DIR=$(dirname $(dirname $BASH_SOURCE))
+
+echo "Updating Google Py Music."
 git pull origin master
-rm -r ~/.local/share/pmcli/src
-cp -r src ~/.local/share/pmcli
-cd script
-echo Done.
+rm -r ~/.local/share/gpymusic/src
+cp -r $DIR/src ~/.local/share/gpymusic
+echo "Done."
