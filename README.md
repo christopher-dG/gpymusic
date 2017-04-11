@@ -15,7 +15,7 @@ Browse and stream Google Play Music from the comfort and familiarity of your fav
 
 ## Installing, updating and uninstalling
 
-Use the `.sh` scripts in `script` to install, update or remove the program. Note that they require root access. While I assure you they're safe, it's good practice to read the script so that you know what it does before running it.
+Use the `.sh` scripts in `script` to install, update or remove the program. Note that they require root access; while I assure you they're safe, it's good practice to read the scripts so that you know what they do before running them.
 
 ## Running Google Py Music
 
