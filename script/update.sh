@@ -7,5 +7,5 @@ DIR=$(dirname $(dirname $BASH_SOURCE))
 echo "Updating Google Py Music."
 git pull origin master
 rm -r ~/.local/share/gpymusic/src
-cp -r $DIR/src ~/.local/share/gpymusic
+cp -r $DIR/gpymusic ~/.local/share/gpymusic
 echo "Done."
