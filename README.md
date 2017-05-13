@@ -17,9 +17,9 @@ Browse and stream Google Play Music from the comfort and familiarity of your fav
 
 You can install `gpymusic` through the `pip` package installer by running:
 
-  $ pip3 install gpymusic
-  $ gpymusic-setup
-  $ gpymusic
+    $ pip3 install gpymusic
+    $ gpymusic-setup
+    $ gpymusic
 
 Note that after running `gpymusic-setup`, an example config file will be placed in `~/.config/gpymusic`. You must edit this with the appropriate parameters to run the app.
 Check the rest of this README for sections on setting up Device IDs, and more.
