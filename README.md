@@ -15,7 +15,16 @@ Browse and stream Google Play Music from the comfort and familiarity of your fav
 
 ## Installing, updating and uninstalling
 
-Use the `.sh` scripts in `script` to install, update or remove the program. Note that they require root access; while I assure you they're safe, it's good practice to read the scripts so that you know what they do before running them.
+You can install `gpymusic` through the `pip` package installer by running:
+
+  $ pip3 install gpymusic
+  $ gpymusic-setup
+  $ gpymusic
+
+Note that after running `gpymusic-setup`, an example config file will be placed in `~/.config/gpymusic`. You must edit this with the appropriate parameters to run the app.
+Check the rest of this README for sections on setting up Device IDs, and more.
+
+Alternatively, you can use the `.sh` scripts in `script` to install, update or remove the program. Note that they require root access; while I assure you they're safe, it's good practice to read the scripts so that you know what they do before running them.
 
 ## Running Google Py Music
 
@@ -27,8 +36,8 @@ Google Py Music works similiarly to the web interface in that users with free ac
 
 Notes for free users:
 
-- A one-time OAuth sign-in is required for free users, run `script/oauth_login.py` and follow the prompts to authorize.
-- If you don't want to wait for songs to download on the fly, you can download them all in one go with `script/download_all.py`. Songs are stored in `~/.local/share/gpymusic/songs`.
+- A one-time OAuth sign-in is required for free users, run `gpymusic-oauth-login` or `bin/oauth_login` and follow the prompts to authorize.
+- If you don't want to wait for songs to download on the fly, you can download them all in one go with `gpymusic-download-all` or `bin/download_all.py`. Songs are stored in `~/.local/share/gpymusic/songs`.
 - The `e/expand` command does not work for free users because artists and albums cannot be generated, so there is nothing for it to do.
 - I don't have enough music uploaded to my free account to properly test it, so please [open issues](https://github.com/christopher-dG/gpymusic/issues/new) about any crashes or other problems.
 
@@ -64,7 +73,7 @@ Note: Upon exiting the program, your terminal colours will likely be modified. J
 
 ## Device ID
 
-If you don't know your device ID, run `script/get_dev_id.py` and answer the prompts to generate a list of valid device IDs.
+If you don't know your device ID, run `gpymusic-get-dev-id` from terminal or `bin/get_dev_id` and answer the prompts to generate a list of valid device IDs.
 
 ## Password
 
