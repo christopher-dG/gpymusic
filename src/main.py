@@ -23,7 +23,7 @@ if __name__ == '__main__':
 
     common.client = client.FullClient() if (
         common.mc.is_subscribed
-    ) else common.client.FreeClient()
+    ) else client.FreeClient()
 
     while True:
         common.client.transition()
