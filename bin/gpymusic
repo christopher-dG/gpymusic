@@ -1,9 +1,8 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python3
 
-import client
-import common
-import start
-
+from gpymusic import client
+from gpymusic import common
+from gpymusic import start
 
 if __name__ == '__main__':
     start.check_dirs()

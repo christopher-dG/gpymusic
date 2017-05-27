@@ -2,9 +2,9 @@ from gmusicapi import Mobileclient
 # Imports are stupid.
 mc = Mobileclient()  # noqa Our interface to Google Play Music.
 
-import songqueue
-import view
-import writer
+from . import songqueue
+from . import view
+from . import writer
 
 from os.path import expanduser, join
 

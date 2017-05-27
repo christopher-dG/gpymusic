@@ -1,5 +1,5 @@
-import common
-import music_objects
+from . import common
+from . import music_objects
 
 
 class Queue(list):

@@ -1,4 +1,4 @@
-import common
+from . import common
 
 from mutagen.mp3 import MP3
 from os import remove
