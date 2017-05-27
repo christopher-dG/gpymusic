@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name='gpymusic',
     version='0.0.5',
-    packages=find_packages(exclude=['bin', 'script']),
+    packages=find_packages(exclude=['bin']),
     scripts=[
         'bin/gpymusic',
         'bin/gpymusic-setup',
