@@ -1,11 +1,12 @@
-import curses as crs
 from . import common
+
 from getpass import getpass
 from os.path import basename, exists, isfile, join
 from time import sleep
+
+import curses as crs
 import json
 import sys
-import pkgutil
 
 
 def validate_config(config):

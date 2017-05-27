@@ -1,6 +1,8 @@
-import curses as crs
-from time import sleep
 from . import common
+
+from time import sleep
+
+import curses as crs
 import sys
 
 

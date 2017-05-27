@@ -1,12 +1,9 @@
 from setuptools import setup, find_packages
-import os
 
 setup(
-	# PyPI specific meta
-	name='gpymusic',
-	version='0.0.5',
-	# Package routines
-	packages=find_packages(exclude=['bin', 'script']),
+    name='gpymusic',
+    version='0.0.5',
+    packages=find_packages(exclude=['bin', 'script']),
     scripts=[
         'bin/gpymusic',
         'bin/gpymusic-setup',
