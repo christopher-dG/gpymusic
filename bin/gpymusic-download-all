@@ -3,13 +3,14 @@
 from gmusicapi import Musicmanager
 from os.path import expanduser, join
 
+
+# Download all of a user's purchased and uploaded songs.
+
 mm = Musicmanager()
 if not mm.login():
-    print('Login failed: did you run oauth_login.py?')
-    quit()
+    print('Login failed: did you run gpymusic-oauth-login?')
+    exit(1)
 
-# No point properly checking for duplicates when overwriting them
-# gives the same result.
 songs = {}
 for song in mm.get_purchased_songs():
     songs[song['id']] = ' - '.join(
@@ -26,9 +27,9 @@ print('Downloading %d songs to ~/.local/share/gpymusic/songs. '
 song_dir = join(expanduser('~'), '.local', 'share', 'gpymusic', 'songs')
 i = 1
 
-for id in songs:
-    print('%d/%d: %s' % (i, len(songs), songs[id]))
+for i, id in enumerate(songs):
+    print('%d/%d: %s' % (i+1, len(songs), songs[id]))
+    # Since filenames cannot contain '/', we replace them with '---'.
     dl_path = join(song_dir, '%s.mp3' % songs[id].replace('/', '---'))
     with open(dl_path, 'wb') as f:
         f.write(mm.download_song(id)[1])
-    i += 1

@@ -2,10 +2,17 @@
 
 from gmusicapi import Musicmanager
 
+
+# Authorize the MusicManager with OAuth2.
+
 mm = Musicmanager()
-mm.perform_oauth()
+try:
+    mm.perform_oauth()
+except KeyboardInterrupt:
+    exit(1)
 if mm.login():
     print('Authorization successful.')
     mm.logout()
 else:
     print('Authorization failed.')
+    exit(1)

@@ -27,7 +27,7 @@ class Writer():
             print('Incompatible arguments to writer: '
                   'curses must be disabled to test.')
             sleep(1)
-            sys.exit()
+            exit(1)
 
         self.main = main
         self.inbar = inbar

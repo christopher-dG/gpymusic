@@ -73,17 +73,17 @@ class Client:
         common.w.main.addstr(
         """
         Commands:
-        s/search searchterm: Search for searchterm
+        s/search search-term: Search for search-term
         e/expand 123: Expand item number 123
-        p/play: Play current queue
-        p/play s: Shuffle and play current queue
+        p/play: Play the current queue
+        p/play s: Shuffle and play the current queue
         p/play 123: Play item number 123
-        q/queue: Show current queue
-        q/queue 123: Add item number 123 to queue
-        q/queue 1 2 3: Add items 1, 2, 3 to queue
-        q/queue c: Clear the current queuen
-        w/write filename: Write current queue to filename
-        r/restore filename: Replace current queue with playlist from filename
+        q/queue: Show the current queue
+        q/queue 123: Add item number 123 to the queue
+        q/queue 1 2 3: Add items 1, 2, and 3 to the queue
+        q/queue c: Clear the current queue
+        w/write playlist-name: Write current queue to playlist playlist-name
+        r/restore playlist-name: Replace the current queue with a playlist
         h/help: Show this help message
         Ctrl-C: Exit gpymusic
         """  # noqa
@@ -110,7 +110,7 @@ class Client:
 
         else:  # Write the playlist.
             with open(join(path, fn), 'w') as f:
-                f.write(json.dumps(common.q))
+                json.dump(common.q, f)
             common.w.outbar_msg('Wrote queue to %s.' % fn)
 
     def restore(self, fn=None):

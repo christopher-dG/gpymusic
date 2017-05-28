@@ -16,7 +16,6 @@ mpv_config = str(
     'utf-8'
 )
 
-
 # Create directories if they don't exist.
 if not os.path.exists(common.CONFIG_DIR):
     print('Config directory not found. Creating one...')
