@@ -9,7 +9,7 @@ if sys.version_info < (3, 4):
 
 setup(
     name='gpymusic',
-    version='1.0.0',
+    version='1.0.1',
     description='A simple TUI client for Google Play Music',
     url='https://github.com/christopher-dG/gpymusic',
     author='Chris de Graaf',

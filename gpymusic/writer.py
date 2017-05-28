@@ -28,6 +28,7 @@ class Writer():
                   'curses must be disabled to test.')
             sleep(1)
             sys.exit()
+
         self.main = main
         self.inbar = inbar
         self.infobar = infobar
@@ -232,7 +233,9 @@ class Writer():
         """Update the main window with some content."""
         if common.v.is_empty():
             return
-        c = common.v
+
+        c = common.v  # Content to display.
+
         if not self.curses:
             if not self.test:
                 i = 1

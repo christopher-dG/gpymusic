@@ -75,7 +75,7 @@ def validate_colour(hex):
 def check_dirs():
     """Make sure that config and data directories exist."""
     msg = 'At least one required directory does not exist: '
-    msg += 'did you install gpymusic correctly?'
+    msg += 'did you run gpymusic-setup?'
     if not exists(common.CONFIG_DIR) or not exists(common.DATA_DIR):
         common.w.goodbye(msg)
     if not exists(join(common.DATA_DIR, 'playlists')):
@@ -135,8 +135,7 @@ def read_config():
             config = json.load(f)
         except json.decoder.JSONDecodeError:
             common.w.goodbye(
-                'Invalid config file, please refer to '
-                'config.example: Exiting.'
+                'Invalid config file, refer to  config.example.json: Exiting.'
             )
 
     return password(config)

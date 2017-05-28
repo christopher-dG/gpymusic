@@ -61,9 +61,14 @@ class MusicObject(dict):
                 (i, len(songs), str(song), song['time'])
             )
 
-            if call(
+            try:
+                ret = call(
                     ['mpv', '--really-quiet', '--input-conf', conf_path, url]
-            ) == 11:  # 'q' returns this exit code.
+                )
+            except KeyboardInterrupt:
+                ret = 11
+
+            if ret == 11:  # 'q' returns this exit code.
                 return i
 
             i += 1
@@ -432,8 +437,16 @@ class LibrarySong(MusicObject):
             common.DATA_DIR, 'songs', '%s.mp3' % str(self).replace('/', '---')
         )
         conf_path = join(common.CONFIG_DIR, 'mpv_input.conf')
-        return call(['mpv', '--really-quiet', '--no-video',
-                     '--input-conf', conf_path, file_path])
+
+        try:
+            ret = call(
+                ['mpv', '--really-quiet', '--no-video',
+                 '--input-conf', conf_path, file_path]
+            )
+        except KeyboardInterrupt:
+            ret = 11
+
+        return ret
 
     def fill(self, func, limit=0):
         """

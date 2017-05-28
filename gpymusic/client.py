@@ -390,7 +390,7 @@ class FreeClient(Client):
         if common.w.curses:
             limit = common.w.main.getmaxyx()[0] - 4
         else:
-            limit = 50
+            limit = 10
         common.w.outbar_msg('Searching for \'%s\'...' % query)
         common.v.clear()
         count, query = 0, query.lower()  # Search is case-insensitive.
@@ -420,13 +420,13 @@ class FullClient(Client):
         num=None: Index of the MusicObject in the main window to be expanded.
         """
         if not common.mc.is_subscribed:
-            common.w.error_msg('Free users cannot expand songs.')
+            common.w.error_msg('Free users cannot expand songs')
             return
         if num is None:  # No argument.
             common.w.error_msg('Missing argument to play')
             return
         if common.v.is_empty():  # Nothing to expand.
-            common.w.error_msg('Wrong context for expand.')
+            common.w.error_msg('Wrong context for expand')
             return
 
         try:
