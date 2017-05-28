@@ -7,7 +7,7 @@ wheel:
 	python3 setup.py bdist_wheel
 
 install:
-	pip install -r requirements.txt
+	pip3 install -r requirements.txt
 
 clean:
 	rm -rf dist
