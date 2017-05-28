@@ -109,7 +109,7 @@ def password(config):
                     common.w.inbar.getstr().decode('utf-8')
                 )
             except KeyboardInterrupt:
-                common.w.gooodbye('Exiting.')
+                common.w.goodbye('Exiting.')
             crs.echo()
 
     return config
