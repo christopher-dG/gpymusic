@@ -227,9 +227,12 @@ def login(user):
     """
     crs.curs_set(0)
     common.w.outbar_msg('Logging in...')
-    if not common.mc.login(user['email'], user['password'], user['deviceid']):
-        common.w.goodbye('Login failed: Exiting.')
-    common.w.outbar_msg(
-        'Logging in... Logged in as %s (%s).' %
-        (user['email'], 'Full' if common.mc.is_subscribed else 'Free')
-    )
+    try:
+        if not common.mc.login(user['email'], user['password'], user['deviceid']):
+            common.w.goodbye('Login failed: Exiting.')
+        common.w.outbar_msg(
+            'Logging in... Logged in as %s (%s).' %
+            (user['email'], 'Full' if common.mc.is_subscribed else 'Free')
+        )
+    except KeyboardInterrupt:
+        common.w.goodbye()

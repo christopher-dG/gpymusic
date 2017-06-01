@@ -17,4 +17,4 @@ CONFIG_DIR = join(expanduser('~'), '.config', 'gpymusic')
 q = songqueue.Queue()  # Queue/playlist.
 w = writer.Writer(None, None, None, None, curses=False)  # Output handler.
 v = view.View()  # Main window contents.
-client = None  # To be set be main.py.
+client = None  # To be set in the main executable.

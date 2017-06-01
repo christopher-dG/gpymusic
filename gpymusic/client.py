@@ -388,7 +388,7 @@ class FreeClient(Client):
         cache = common.v.copy()
 
         if common.w.curses:
-            limit = common.w.main.getmaxyx()[0] - 4
+            limit = common.w.main.ylimit - 4
         else:
             limit = 10
         common.w.outbar_msg('Searching for \'%s\'...' % query)

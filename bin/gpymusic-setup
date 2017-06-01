@@ -2,18 +2,18 @@
 
 from gpymusic import common
 
-import json
 import os
 import pkgutil
 
 
 # Import default config files.
-config_json = json.loads(
-    pkgutil.get_data('gpymusic', os.path.join('config', 'config.example.json'))
+gpymusic_config = str(
+    pkgutil.get_data('gpymusic', os.path.join('config', 'config.json')),
+    'utf-8',
 )
 mpv_config = str(
     pkgutil.get_data('gpymusic', os.path.join('config', 'mpv_input.conf')),
-    'utf-8'
+    'utf-8',
 )
 
 # Create directories if they don't exist.
@@ -34,7 +34,7 @@ else:
 if not os.path.isfile(os.path.join(common.CONFIG_DIR, 'config.json')):
     print('Writing gpymusic config file...')
     with open(os.path.join(common.CONFIG_DIR, 'config.json'), 'w') as f:
-        json.dump(config_json, f)
+        f.write(gpymusic_config)
 else:
     print('gpymusic config file already exists, not overwriting.')
 

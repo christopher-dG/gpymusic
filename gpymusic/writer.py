@@ -143,12 +143,12 @@ class Writer():
         except:  # If this errors for some reason, just don't display anything.
             pass
 
-    def goodbye(self, msg):
+    def goodbye(self, msg=''):
         """
         Exit gpymusic.
 
         Arguements:
-        msg: Message to display prior to exiting.
+        msg='': Message to display prior to exiting.
         """
         if not self.curses:
             if not self.test:
@@ -170,7 +170,7 @@ class Writer():
         """
         Get user input in the bottom bar.
 
-        Returns: The user - inputted string.
+        Returns: The user-inputted string.
         """
         if not self.curses:
             return input('Enter some input: ')
