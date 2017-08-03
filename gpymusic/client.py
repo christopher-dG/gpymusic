@@ -489,10 +489,12 @@ class FullClient(Client):
 
                 limit = int((common.w.ylimit - 3)) if common.w.curses else 50
 
-                for song in common.mc.get_station_tracks(station_id, num_tracks=limit):
-                    common.q.append(music_objects.Song(song))
+                del common.q[:]  # Clear current queue
+                # pull limit songs from radio station and add them to queue
+                common.q.extend(music_objects.Song(song)
+                                for song in common.mc.get_station_tracks(station_id, num_tracks=limit))
                 common.w.erase_outbar()
-                self.queue()
+                self.queue()  # show the queue
 
     def search(self, query=None):
         """
