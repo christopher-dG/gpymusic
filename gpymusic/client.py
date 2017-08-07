@@ -25,6 +25,7 @@ class Client:
             'help': self.help,
             'e': self.expand,
             'expand': self.expand,
+            'radio': self.radio,
             's': self.search,
             'search': self.search,
             'p': self.play,
@@ -75,6 +76,7 @@ class Client:
         Commands:
         s/search search-term: Search for search-term
         e/expand 123: Expand item number 123
+        radio 123: Create radio station around item number 123
         p/play: Play the current queue
         p/play s: Shuffle and play the current queue
         p/play 123: Play item number 123
@@ -295,7 +297,7 @@ class FreeClient(Client):
     Client for free users with limited functionality.
       Free users only have access to songs that they have either purchased
       or uploaded, and they must be downloaded before they can be played.
-      Artists and albums cannot be generated, so the expand method has no use.
+      Artists and albums cannot be generated, so the expand and radio methods have no use.
     """
     def __init__(self):
         """
@@ -372,6 +374,15 @@ class FreeClient(Client):
         """
         common.q.error_msg('Free users cannot use expand')
 
+    def radio(self, arg=None):
+        """
+        Artists/albums cannot be generated. so free users cannot create radio stations.
+
+        Keyword arguments:
+        arg=None: Irrelevant.
+        """
+        common.q.error_msg('Free users cannot use radio')
+
     def search(self, query):
         """
         Search the library for some query. and update the
@@ -442,6 +453,48 @@ class FullClient(Client):
             if item is not None:  # Valid input.
                 common.v.replace(item.collect(limit=limit))
                 common.w.erase_outbar()
+
+    def radio(self, num=None):
+        """
+        Create a radio station based on a specific song, artist, or album.
+
+        Keyword arguments:
+        num=None: Index of the MusicObject in the main window to create a radio station with.
+        """
+        if not common.mc.is_subscribed:
+            common.w.error_msg('Free users cannot create radio stations')
+            return
+        if num is None:  # No argument.
+            common.w.error_msg('Missing argument to radio')
+            return
+        if common.v.is_empty():  # Nothing to radio.
+            common.w.error_msg('Wrong context for radio')
+            return
+
+        try:
+            num = int(num)
+        except ValueError:  # num needs to be an int.
+            common.w.error_msg('Invalid argument to radio')
+        else:
+            item = self.get_option(num)
+            if item is not None:  # Valid input.
+                station_name = item['name']+" radio"
+                item_id = item['id']
+                if item['kind'] == 'artist':
+                    station_id = common.mc.create_station(station_name, artist_id=item_id)
+                elif item['kind'] == 'album':
+                    station_id = common.mc.create_station(station_name, album_id=item_id)
+                elif item['kind'] == 'song':
+                    station_id = common.mc.create_station(station_name, track_id=item_id)
+
+                limit = int((common.w.ylimit - 3)) if common.w.curses else 50
+
+                del common.q[:]  # Clear current queue
+                # pull limit songs from radio station and add them to queue
+                common.q.extend(music_objects.Song(song)
+                                for song in common.mc.get_station_tracks(station_id, num_tracks=limit))
+                common.w.erase_outbar()
+                self.queue()  # show the queue
 
     def search(self, query=None):
         """

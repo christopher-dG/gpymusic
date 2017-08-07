@@ -289,7 +289,10 @@ class Song(MusicObject):
           we initialize the song.
         """
         if source == 'api':  # Initializing from api results.
-            super().__init__(song['storeId'], song['title'], 'song', full)
+            if 'storeId' in song:
+                super().__init__(song['storeId'], song['title'], 'song', full)
+            else:  # Case of uploaded song and an All-Access subsriber.
+                super().__init__(song['id'], song['title'], 'song', full)
             try:
                 self['artist'] = Artist({
                     'name': song['artist'], 'artistId': song['artistId'][0]
