@@ -77,6 +77,7 @@ with `gpymusic`. While the program is running, don't resize your terminal.
 * `q/queue 123`:  Add item number `123` to queue
 * `q/queue 1 2 3`:  Add items `1`, `2`, and `3` to the queue
 * `q/queue c`:  Clear the current queue
+* `radio 123`: Create radio station around item number `123`
 * `w/write playlist-name`: Write the current queue to playlist `playlist-name`
 * `r/restore playlist-name`: Replace the current queue with a playlist
   from `file-name`
