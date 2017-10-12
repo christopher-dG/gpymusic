@@ -1,5 +1,5 @@
-__pycache__
-replace.sh
-dist/
-build/
-gpymusic.egg-info/
+*.pyc
+**/__pycache__/
+/dist/
+/build/
+/gpymusic.egg-info/
