@@ -57,6 +57,9 @@ to hex colours as desired. `highlight` affects the section headers and
 'now playing' output, `content{1|2}` affect the main window, and
 `background`/`foreground` are self-explanatory.
 
+Setting `background` to `default` allows you to use your terminal background
+colour, which means this allows transparency if your terminal supports it.
+
 **Note**: Upon exiting the program, your terminal colours will likely
 be modified. Just open a new terminal session and your colours will
 be back to normal.
