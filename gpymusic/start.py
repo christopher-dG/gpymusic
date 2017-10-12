@@ -45,7 +45,7 @@ def validate_config(config):
         colour = False
         sleep(1.5)
     elif colour and not all(
-            [validate_colour(config['colour'][c]) for c in colour_fields]
+            [validate_colour(c, config['colour'][c]) for c in colour_fields]
     ):
         common.w.outbar_msg(
             'One or more colours are invalid: Not using colour.'
@@ -56,15 +56,20 @@ def validate_config(config):
     return colour
 
 
-def validate_colour(hex):
+def validate_colour(field, hex):
     """
     Verify that a string represents a valid hex colour.
 
     Arguments:
+    field: Field name
     hex: String to be checked.
 
     Returns: Whether or not the string is a hex colour.
+      The 'background' field may alternatively be set to 'default'.
     """
+    if field == 'background' and hex == 'default':
+        return True
+
     # ASCII values for letters and numbers.
     c = tuple(range(48, 58)) + tuple(range(65, 91)) + tuple(range(97, 123))
 
@@ -182,17 +187,22 @@ def set_colours(colours):
     """
     crs.start_color()
     # Define colours.
-    crs.init_color(0, *hex_to_rgb(colours['background']))
+    if colours['background'] == 'default':
+        crs.use_default_colors()
+        background = -1
+    else:
+        crs.init_color(0, *hex_to_rgb(colours['background']))
+        background = 0
     crs.init_color(1, *hex_to_rgb(colours['foreground']))
     crs.init_color(2, *hex_to_rgb(colours['highlight']))
     crs.init_color(3, *hex_to_rgb(colours['content1']))
     crs.init_color(4, *hex_to_rgb(colours['content2']))
 
     # Define colour pairs.
-    crs.init_pair(1, 1, 0)
-    crs.init_pair(2, 2, 0)
-    crs.init_pair(3, 3, 0)
-    crs.init_pair(4, 4, 0)
+    crs.init_pair(1, 1, background)
+    crs.init_pair(2, 2, background)
+    crs.init_pair(3, 3, background)
+    crs.init_pair(4, 4, background)
 
     # Set colours.
     crs.start_color()
