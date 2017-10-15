@@ -64,7 +64,7 @@ colour, which means this allows transparency if your terminal supports it.
 be modified. Just open a new terminal session and your colours will
 be back to normal.
 
-### Now playing
+### Now Playing
 
 To log the currently playing track to a file, include a `nowplaying` section in
 your config file with `enable` set to `yes`. A `filename` may then be specified,
@@ -73,9 +73,11 @@ or the default value of `~/.nowplaying` will be used.
 This file may then be used in status bars or simple notifications systems. For
 example, here is a simple i3blocks definition:
 
-    [music]
-    command=cat ~/.nowplaying
-    interval=5
+```
+[music]
+command=cat ~/.nowplaying
+interval=5
+```
 
 ## Running Google Py Music
 
