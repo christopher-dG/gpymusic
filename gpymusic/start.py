@@ -1,7 +1,7 @@
 from . import common
 
 from getpass import getpass
-from os.path import basename, exists, isfile, join
+from os.path import basename, exists, expanduser, isfile, join
 from time import sleep
 
 import curses as crs
@@ -31,6 +31,19 @@ def validate_config(config):
     # Check if there is enough user info.
     if not all([k in config['user'] for k in user_fields]):
         common.w.goodbye('Missing user info in config file: Exiting.')
+
+    if 'nowplaying' in config and 'enable' not in config['nowplaying']:
+        common.w.goodbye(
+            'Missing nowplaying enable flag in config file: Exiting.')
+    else:
+        nowplaying = config['nowplaying']['enable'] == 'yes'
+
+    if nowplaying:
+        if 'filename' in config['nowplaying']:
+            filename = config['nowplaying']['filename']
+        else:
+            filename = '~/.nowplaying'
+        common.np.initialise(expanduser(filename))
 
     # Check if there is any colour info.
     if 'colour' in config and 'enable' not in config['colour']:
