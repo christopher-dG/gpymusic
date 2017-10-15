@@ -103,6 +103,7 @@ class Writer():
         """
         if self.test:
             return
+        common.np.update(string if string is not None else '')
         self.addstr(self.infobar, 'Now playing: %s' %
                     (string if string is not None else 'None'))
 
@@ -181,6 +182,7 @@ class Writer():
         try:
             string = self.inbar.getstr()
         except KeyboardInterrupt:
+            common.np.close()
             self.goodbye('Goodbye, thanks for using Google Py Music!')
 
         self.inbar.deleteln()
@@ -201,7 +203,7 @@ class Writer():
 
     def measure_fields(self, width):
         """
-        Determine max number of  characters and starting point
+        Determine max number of characters and starting point
           for category fields.
 
         Arguments:

@@ -2,6 +2,7 @@ from gmusicapi import Mobileclient
 # Imports are stupid.
 mc = Mobileclient()  # noqa Our interface to Google Play Music.
 
+from . import nowplaying
 from . import songqueue
 from . import view
 from . import writer
@@ -17,4 +18,5 @@ CONFIG_DIR = join(expanduser('~'), '.config', 'gpymusic')
 q = songqueue.Queue()  # Queue/playlist.
 w = writer.Writer(None, None, None, None, curses=False)  # Output handler.
 v = view.View()  # Main window contents.
+np = nowplaying.NowPlaying()
 client = None  # To be set in the main executable.
