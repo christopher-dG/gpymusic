@@ -297,7 +297,8 @@ class FreeClient(Client):
     Client for free users with limited functionality.
       Free users only have access to songs that they have either purchased
       or uploaded, and they must be downloaded before they can be played.
-      Artists and albums cannot be generated, so the expand and radio methods have no use.
+      Artists and albums cannot be generated, so the expand and radio methods
+      have no use.
     """
     def __init__(self):
         """
@@ -376,7 +377,8 @@ class FreeClient(Client):
 
     def radio(self, arg=None):
         """
-        Artists/albums cannot be generated. so free users cannot create radio stations.
+        Artists/albums cannot be generated. so free users cannot create radio
+        stations.
 
         Keyword arguments:
         arg=None: Irrelevant.
@@ -399,7 +401,7 @@ class FreeClient(Client):
         cache = common.v.copy()
 
         if common.w.curses:
-            limit = common.w.main.ylimit - 4
+            limit = common.w.ylimit - 4
         else:
             limit = 10
         common.w.outbar_msg('Searching for \'%s\'...' % query)
@@ -459,7 +461,8 @@ class FullClient(Client):
         Create a radio station based on a specific song, artist, or album.
 
         Keyword arguments:
-        num=None: Index of the MusicObject in the main window to create a radio station with.
+        num=None: Index of the MusicObject in the main window to create a radio
+          station with.
         """
         if not common.mc.is_subscribed:
             common.w.error_msg('Free users cannot create radio stations')
@@ -481,11 +484,20 @@ class FullClient(Client):
                 station_name = item['name']+" radio"
                 item_id = item['id']
                 if item['kind'] == 'artist':
-                    station_id = common.mc.create_station(station_name, artist_id=item_id)
+                    station_id = common.mc.create_station(
+                        station_name,
+                        artist_id=item_id,
+                    )
                 elif item['kind'] == 'album':
-                    station_id = common.mc.create_station(station_name, album_id=item_id)
+                    station_id = common.mc.create_station(
+                        station_name,
+                        album_id=item_id,
+                    )
                 elif item['kind'] == 'song':
-                    station_id = common.mc.create_station(station_name, track_id=item_id)
+                    station_id = common.mc.create_station(
+                        station_name,
+                        track_id=item_id,
+                    )
 
                 limit = int((common.w.ylimit - 3)) if common.w.curses else 50
 
