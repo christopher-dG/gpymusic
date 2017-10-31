@@ -34,6 +34,8 @@ for his work on the `pip` installation.
 
 Once `gpymusic` is installed, run `gpymusic-setup`.
 An example config file will be placed in `~/.config/gpymusic`.
+Additionally, you should run `gpymusic-oauth-login` and follow
+the prompts if you have a free account.
 
 ### Device ID
 
@@ -121,8 +123,8 @@ played locally rather than streamed.
 
 Notes for free users:
 
-* A one-time OAuth2 sign-in is required for free users, run
-  `gpymusic-oauth-login` and follow the prompts to authorize.
+* OAuth2 login is required for free users, make sure you've run
+  `gpymusic-oauth-login` as described in [configuration](#configuration)!
 * If you don't want to wait for songs to download on the fly, you can download
   them all in one go by running `gpymusic-download-all`.
   Songs are stored in `~/.local/share/gpymusic/songs`.
