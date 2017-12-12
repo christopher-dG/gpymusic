@@ -10,6 +10,24 @@ of your favourite terminal.
 ![screencast](https://fat.gfycat.com/MixedCoordinatedAmphibian.gif
 "Just pretend that this says Google Py Music instead of pmcli.")
 
+## Disclaimer
+
+gpymusic has more or less entered maintenance mode; I'll address critical 
+bugs but I'm not particularly interested in writing new features or digging
+too deep into troubleshooting (testing has become much harder since I no
+longer have a paid GPM account).
+
+At some point in the future I'm hoping to do a ground-up rewrite with a much 
+more maintainable and modular design, but only as time allows. I can't even
+guarantee that it will support GPM, that it will be written in Python, or
+that it will be remotely similar to the current implementation (I'm leaning
+towards full CLI at the moment).
+
+But for the time being, the current version accomplishes most of the goals I
+originally had for this project, so hopefully it's sufficient for your needs.
+If not, I very strongly encourage you to check out 
+[cfangmeier's tuijam](https://github.com/cfangmeier/tuijam)!
+
 ## Dependencies
 
 * [Python >= 3.4](https://www.python.org/downloads)
