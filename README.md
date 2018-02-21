@@ -12,7 +12,7 @@ of your favourite terminal.
 
 ## Disclaimer
 
-gpymusic has more or less entered maintenance mode; I'll address critical 
+Google Py Music has more or less entered maintenance mode; I'll address critical 
 bugs but I'm not particularly interested in writing new features or digging
 too deep into troubleshooting (testing has become much harder since I no
 longer have a paid GPM account).
@@ -30,8 +30,11 @@ If not, I very strongly encourage you to check out
 
 ## Dependencies
 
-* [Python >= 3.4](https://www.python.org/downloads)
+* [Python >= 3.4](https://www.python.org)
 * [mpv](https://mpv.io)
+* [openssl](https://www.openssl.org)
+
+All of these can usually be installed with your operating system's package manager.
 
 ## Installation
 
