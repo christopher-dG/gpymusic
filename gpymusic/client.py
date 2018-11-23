@@ -5,6 +5,7 @@ import json
 import zipfile
 
 from os.path import exists, isfile, join
+from os import listdir
 from random import shuffle
 
 from gmusicapi import Musicmanager
@@ -36,6 +37,7 @@ class Client:
             'write': self.write,
             'r': self.restore,
             'restore': self.restore,
+            'list': self.list,
         }
 
         arg = None
@@ -86,6 +88,7 @@ class Client:
         q/queue c: Clear the current queue
         w/write playlist-name: Write current queue to playlist playlist-name
         r/restore playlist-name: Replace the current queue with a playlist
+        l/list: List of playlist  saved on disk
         h/help: Show this help message
         Ctrl-C: Exit gpymusic
         """  # noqa
@@ -138,6 +141,25 @@ class Client:
                 common.w.error_msg('%s is not a valid playlist file' % fn)
             else:
                 common.q.restore(json_songs)
+
+    def list(self, arg=None):
+        path = join(common.DATA_DIR, 'playlists')
+        playlists = listdir(path)
+        if len(playlists):
+            common.v.clear()
+            common.w.main.erase()
+            common.w.outbar_msg('Listing local playlists')
+
+            msg  = "\n==Local playlists available==\n\n"
+            for item in playlists:
+                msg = msg + " - " + item + "\n"
+            msg = msg + "\n\nUse read [playlist-name] to show playlist"
+
+            common.w.main.addstr(msg)
+            common.w.main.refresh()
+
+        else:
+            common.w.outbar_msg('No local playlist found')
 
     def queue(self, arg=None):
         """
