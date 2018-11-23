@@ -28,9 +28,10 @@ def validate_config(config):
     if 'user' not in config:
         common.w.goodbye('No user info in config file: Exiting.')
 
-    # Check if there is enough user info.
-    if not all([k in config['user'] for k in user_fields]):
-        common.w.goodbye('Missing user info in config file: Exiting.')
+    if 'oauth' not in config['user']:
+        # Check if there is enough user info.
+        if not all([k in config['user'] for k in user_fields]):
+            common.w.goodbye('Missing user info in config file: Exiting.')
 
     if 'nowplaying' in config and 'enable' not in config['nowplaying']:
         common.w.goodbye(
@@ -113,7 +114,7 @@ def password(config):
     Returns: the config dict, either unchanged or with
       the entered password.
     """
-    if not config['user']['password']:
+    if  'oauth' not in config['user'] and not config['user']['password']:
         if not common.w.curses:
             try:
                 config['user']['password'] = getpass()
@@ -240,6 +241,11 @@ def easy_login():
         print('Logged in as %s (%s).' %
               (user['email'], 'Full' if common.mc.is_subscribed else 'Free'))
 
+def oauth_login(user):
+    if 'oauth' in user and user['oauth']:
+        if not common.mc.oauth_login(user['deviceid']):
+            common.mc.perform_oauth()
+
 
 def login(user):
     """
@@ -251,11 +257,20 @@ def login(user):
     crs.curs_set(0)
     common.w.outbar_msg('Logging in...')
     try:
-        if not common.mc.login(user['email'], user['password'], user['deviceid']):
+        authmethod = ''
+        if 'oauth' in user and user['oauth']:
+            if common.mc.is_authenticated():
+                authmethod = 'oauth'
+            else:
+                common.w.goodbye('Login failed, please follow the oauth instructions')
+
+        elif common.mc.login(user['email'], user['password'], user['deviceid']):
+            authmethod = 'password'
+        else:
             common.w.goodbye('Login failed: Exiting.')
         common.w.outbar_msg(
-            'Logging in... Logged in as %s (%s).' %
-            (user['email'], 'Full' if common.mc.is_subscribed else 'Free')
+                '... Logged in as %s (%s) - using %s login ...' %
+            (user['email'], 'Full' if common.mc.is_subscribed else 'Free', authmethod)
         )
     except KeyboardInterrupt:
         common.w.goodbye()

@@ -6,14 +6,20 @@ from gpymusic import start
 
 if __name__ == '__main__':
     start.check_dirs()
+    config = start.read_config()
+    # why so early? curses window break the regular terminal input
+    # and we need it for oauth
+    if 'oauth' in config['user'] and config['user']['oauth']:
+        start.oauth_login(config['user'])
     common.w.replace_windows(*start.get_windows())
     common.w.curses = True
-    config = start.read_config()
     colour = start.validate_config(config)
     if colour:
         start.set_colours(config['colour'])
         common.w.colour = True
     common.w.welcome()
+
+    # This remains here to validate the user is logged in with the previous oauth method
     start.login(config['user'])
     common.w.addstr(
         common.w.infobar,

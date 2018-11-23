@@ -4,7 +4,7 @@ certifi==2017.4.17
 chardet==3.0.3
 decorator==4.0.11
 future==0.16.0
-gmusicapi==10.1.2
+gmusicapi==11.0.5-rc.1
 gpsoauth==0.4.1
 httplib2==0.10.3
 idna==2.5

@@ -3,3 +3,5 @@ replace.sh
 dist/
 build/
 gpymusic.egg-info/
+*.pyc
+start
