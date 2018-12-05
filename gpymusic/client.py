@@ -37,7 +37,7 @@ class Client:
             'write': self.write,
             'r': self.restore,
             'restore': self.restore,
-            'playlists': self.list,
+            'playlists': self.playlists,
         }
 
         arg = None
