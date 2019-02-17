@@ -12,21 +12,13 @@ of your favourite terminal.
 
 ## Disclaimer
 
-Google Py Music has more or less entered maintenance mode; I'll address critical 
-bugs but I'm not particularly interested in writing new features or digging
-too deep into troubleshooting (testing has become much harder since I no
-longer have a paid GPM account).
+Google Py Music is essentiallly unmaintained; I'll address security alerts
+and review PRs but I won't be fixing bugs or adding anything new myself.
 
-At some point in the future I'm hoping to do a ground-up rewrite with a much 
-more maintainable and modular design, but only as time allows. I can't even
-guarantee that it will support GPM, that it will be written in Python, or
-that it will be remotely similar to the current implementation (I'm leaning
-towards full CLI at the moment).
-
-But for the time being, the current version accomplishes most of the goals I
-originally had for this project, so hopefully it's sufficient for your needs.
-If not, I very strongly encourage you to check out 
-[cfangmeier's tuijam](https://github.com/cfangmeier/tuijam)!
+These days I use Spotify with [spotifyd](https://github.com/Spotifyd/spotifyd)
+and [baton](https://github.com/joshuathompson/baton). For GPM, I recommend
+[tuijam](https://github.com/cfangmeier/tuijam), which has loads more features
+and is actively maintained!
 
 ## Dependencies
 
