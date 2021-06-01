@@ -22,5 +22,5 @@ python-dateutil==2.6.0
 requests>=2.20.0
 rsa==4.1
 six==1.10.0
-urllib3==1.24.2
+urllib3==1.26.5
 validictory==1.1.1
